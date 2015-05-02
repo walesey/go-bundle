@@ -5,26 +5,28 @@ import (
 	"github.com/mamaar/risotto/token"
 )
 
-func (self *_parser) parseJSX() *ast.JSXExpression {
-	jsx := &ast.JSXExpression{}
+func (self *_parser) parseJSX() *ast.JSXBlock {
+	jsx := &ast.JSXBlock{}
 
 	jsx.OpeningElement = self.parseOpeningElement()
 	if jsx.OpeningElement.SelfClosing {
 		return jsx
 	}
-
-	jsx.ClosingElement = self.parseClosingElement()
+	jsx.ClosingElement = self.parseClosingElement(jsx.OpeningElement.Name.Name)
 
 	return jsx
 }
 
-func (self *_parser) parseClosingElement() ast.JSXElement {
+func (self *_parser) parseClosingElement(expectedName string) ast.JSXElement {
 	closing := ast.JSXElement{}
 	closing.LeftTag = self.expect(token.LESS)
 	self.expect(token.SLASH)
 
 	if self.token == token.IDENTIFIER {
 		closing.Name = self.parseIdentifier()
+		if closing.Name.Name != expectedName {
+			self.error(self.idx, "Closing element does not match the name of any opening elements")
+		}
 	}
 
 	closing.RightTag = self.expect(token.GREATER)

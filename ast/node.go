@@ -31,7 +31,18 @@ type (
 		_expressionNode()
 	}
 
+	JSXExpression interface {
+		Node
+	}
+
+	JSXText struct {
+		JSXExpression
+		Pos     file.Idx
+		Literal string
+	}
+
 	JSXElement struct {
+		JSXExpression
 		LeftTag      file.Idx
 		RightTag     file.Idx
 		Name         *Identifier
@@ -39,7 +50,7 @@ type (
 		PropertyList []Property
 	}
 
-	JSXExpression struct {
+	JSXBlock struct {
 		OpeningElement JSXElement
 		ClosingElement JSXElement
 		Body           []*JSXExpression
@@ -190,7 +201,9 @@ type (
 
 // _expressionNode
 
-func (*JSXExpression) _expressionNode()         {}
+func (*JSXText) _expressionNode()               {}
+func (*JSXElement) _expressionNode()            {}
+func (*JSXBlock) _expressionNode()              {}
 func (*ArrayLiteral) _expressionNode()          {}
 func (*AssignExpression) _expressionNode()      {}
 func (*BadExpression) _expressionNode()         {}
@@ -405,7 +418,9 @@ type Program struct {
 // Idx0 //
 // ==== //
 
-func (self *JSXExpression) Idx0() file.Idx         { return self.OpeningElement.LeftTag }
+func (self *JSXText) Idx0() file.Idx               { return self.Pos }
+func (self *JSXElement) Idx0() file.Idx            { return self.LeftTag }
+func (self *JSXBlock) Idx0() file.Idx              { return self.OpeningElement.Idx0() }
 func (self *ArrayLiteral) Idx0() file.Idx          { return self.LeftBracket }
 func (self *AssignExpression) Idx0() file.Idx      { return self.Left.Idx0() }
 func (self *BadExpression) Idx0() file.Idx         { return self.From }
@@ -454,12 +469,14 @@ func (self *WithStatement) Idx0() file.Idx       { return self.With }
 // Idx1 //
 // ==== //
 
-func (self *JSXExpression) Idx1() file.Idx {
+func (self *JSXBlock) Idx1() file.Idx {
 	if self.OpeningElement.SelfClosing {
-		return self.OpeningElement.RightTag
+		return self.OpeningElement.Idx1()
 	}
-	return self.ClosingElement.RightTag
+	return self.ClosingElement.Idx1()
 }
+func (self *JSXText) Idx1() file.Idx               { return file.Idx(int(self.Pos) + len(self.Literal)) }
+func (self *JSXElement) Idx1() file.Idx            { return self.RightTag }
 func (self *ArrayLiteral) Idx1() file.Idx          { return self.RightBracket }
 func (self *AssignExpression) Idx1() file.Idx      { return self.Right.Idx1() }
 func (self *BadExpression) Idx1() file.Idx         { return self.To }

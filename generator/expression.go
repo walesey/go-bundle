@@ -9,8 +9,8 @@ import (
 
 func (g *generator) generateExpression(exp ast.Expression) error {
 	switch exp.(type) {
-	case *ast.JSXExpression:
-		return g.jsxExpression(exp.(*ast.JSXExpression))
+	case *ast.JSXBlock:
+		return g.jsxBlockExpression(exp.(*ast.JSXBlock))
 	case *ast.VariableExpression:
 		return g.variableExpression(exp.(*ast.VariableExpression))
 	case *ast.FunctionLiteral:
@@ -58,7 +58,7 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 	}
 }
 
-func (g *generator) jsxExpression(jsx *ast.JSXExpression) error {
+func (g *generator) jsxBlockExpression(jsx *ast.JSXBlock) error {
 	g.write("React.createElement(")
 
 	openingElement := jsx.OpeningElement
