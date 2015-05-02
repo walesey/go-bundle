@@ -31,6 +31,20 @@ type (
 		_expressionNode()
 	}
 
+	JSXElement struct {
+		LeftTag      file.Idx
+		RightTag     file.Idx
+		Name         *Identifier
+		SelfClosing  bool
+		PropertyList []Property
+	}
+
+	JSXExpression struct {
+		OpeningElement JSXElement
+		ClosingElement JSXElement
+		Body           []*JSXExpression
+	}
+
 	ArrayLiteral struct {
 		LeftBracket  file.Idx
 		RightBracket file.Idx
@@ -176,6 +190,7 @@ type (
 
 // _expressionNode
 
+func (*JSXExpression) _expressionNode()         {}
 func (*ArrayLiteral) _expressionNode()          {}
 func (*AssignExpression) _expressionNode()      {}
 func (*BadExpression) _expressionNode()         {}
@@ -390,6 +405,7 @@ type Program struct {
 // Idx0 //
 // ==== //
 
+func (self *JSXExpression) Idx0() file.Idx         { return self.OpeningElement.LeftTag }
 func (self *ArrayLiteral) Idx0() file.Idx          { return self.LeftBracket }
 func (self *AssignExpression) Idx0() file.Idx      { return self.Left.Idx0() }
 func (self *BadExpression) Idx0() file.Idx         { return self.From }
@@ -438,6 +454,12 @@ func (self *WithStatement) Idx0() file.Idx       { return self.With }
 // Idx1 //
 // ==== //
 
+func (self *JSXExpression) Idx1() file.Idx {
+	if self.OpeningElement.SelfClosing {
+		return self.OpeningElement.RightTag
+	}
+	return self.ClosingElement.RightTag
+}
 func (self *ArrayLiteral) Idx1() file.Idx          { return self.RightBracket }
 func (self *AssignExpression) Idx1() file.Idx      { return self.Right.Idx1() }
 func (self *BadExpression) Idx1() file.Idx         { return self.To }

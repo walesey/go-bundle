@@ -28,7 +28,6 @@ func (self *_parser) parseStatementList() (list []ast.Statement) {
 }
 
 func (self *_parser) parseStatement() ast.Statement {
-
 	if self.token == token.EOF {
 		self.errorUnexpectedToken(self.token)
 		return &ast.BadStatement{From: self.idx, To: self.idx + 1}
@@ -513,6 +512,7 @@ func (self *_parser) parseIfStatement() ast.Statement {
 }
 
 func (self *_parser) parseSourceElement() ast.Statement {
+
 	return self.parseStatement()
 }
 

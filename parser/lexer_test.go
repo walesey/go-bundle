@@ -19,15 +19,15 @@ func TestLexer(t *testing.T) {
 		for len(test) > 0 {
 			tkn, literal, idx := parser.scan()
 			if len(test) > 0 {
-				assert.Equal(t, tkn, test[0].(token.Token))
+				assert.Equal(t, test[0].(token.Token), tkn)
 				test = test[1:]
 			}
 			if len(test) > 0 {
-				assert.Equal(t, literal, test[0].(string))
+				assert.Equal(t, test[0].(string), literal)
 				test = test[1:]
 			}
 			if len(test) > 0 {
-				assert.Equal(t, idx, file.Idx(test[0].(int)))
+				assert.Equal(t, file.Idx(test[0].(int)), idx)
 				test = test[1:]
 			}
 		}
@@ -370,5 +370,25 @@ Second line \
 		token.STRING, "\"\\x0G\"", 1,
 		token.EOF, "", 7,
 	)
+
+	test("<div />",
+		token.LESS, "", 1,
+		token.IDENTIFIER, "div", 2,
+		token.SLASH, "", 6,
+		token.GREATER, "", 7,
+		token.EOF, "", 8)
+
+	test("<div param=\"value\"></div>",
+		token.LESS, "", 1,
+		token.IDENTIFIER, "div", 2,
+		token.IDENTIFIER, "param", 6,
+		token.ASSIGN, "", 11,
+		token.STRING, "\"value\"", 12,
+		token.GREATER, "", 19,
+		token.LESS, "", 20,
+		token.SLASH, "", 21,
+		token.IDENTIFIER, "div", 22,
+		token.GREATER, "", 25,
+		token.EOF, "", 26)
 
 }

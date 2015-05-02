@@ -22,6 +22,8 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 	literal := self.literal
 	idx := self.idx
 	switch self.token {
+	case token.LESS:
+		return self.parseJSX()
 	case token.IDENTIFIER:
 		self.next()
 		if len(literal) > 1 {

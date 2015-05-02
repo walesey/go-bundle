@@ -118,7 +118,6 @@ func isLineTerminator(chr rune) bool {
 }
 
 func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
-
 	self.implicitSemicolon = false
 
 	for {
