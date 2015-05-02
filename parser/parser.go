@@ -1,36 +1,3 @@
-/*
-Package parser implements a parser for JavaScript.
-
-    import (
-        "github.com/robertkrimen/otto/parser"
-    )
-
-Parse and return an AST
-
-    filename := "" // A filename is optional
-    src := `
-        // Sample xyzzy example
-        (function(){
-            if (3.14159 > 0) {
-                console.log("Hello, World.");
-                return;
-            }
-
-            var xyzzy = NaN;
-            console.log("Nothing happens.");
-            return xyzzy;
-        })();
-    `
-
-    // Parse some JavaScript, yielding a *ast.Program and/or an ErrorList
-    program, err := parser.ParseFile(nil, filename, src, 0)
-
-Warning
-
-The parser and AST interfaces are still works-in-progress (particularly where
-node types are concerned) and may change in the future.
-
-*/
 package parser
 
 import (
@@ -39,9 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/robertkrimen/otto/ast"
-	"github.com/robertkrimen/otto/file"
-	"github.com/robertkrimen/otto/token"
+	"github.com/mamaar/risotto/ast"
+	"github.com/mamaar/risotto/file"
+	"github.com/mamaar/risotto/token"
 )
 
 // A Mode value is a set of flags (or 0). They control optional parser functionality.

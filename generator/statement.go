@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/robertkrimen/otto/ast"
+	"github.com/mamaar/risotto/ast"
 	"reflect"
 )
 

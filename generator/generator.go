@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/robertkrimen/otto/ast"
-	"github.com/robertkrimen/otto/parser"
+	"github.com/mamaar/risotto/ast"
+	"github.com/mamaar/risotto/parser"
 	"io"
 	"strings"
 	"unicode"

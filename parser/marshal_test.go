@@ -9,7 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/robertkrimen/otto/ast"
+	"github.com/mamaar/risotto/ast"
+	"github.com/stretchr/testify/assert"
 )
 
 func marshal(name string, children ...interface{}) interface{} {
@@ -192,27 +193,26 @@ func testMarshal(node interface{}) string {
 }
 
 func TestParserAST(t *testing.T) {
-	tt(t, func() {
 
-		test := func(inputOutput string) {
-			match := matchBeforeAfterSeparator.FindStringIndex(inputOutput)
-			input := strings.TrimSpace(inputOutput[0:match[0]])
-			wantOutput := strings.TrimSpace(inputOutput[match[1]:])
-			_, program, err := testParse(input)
-			is(err, nil)
-			haveOutput := testMarshal(program)
-			tmp0, tmp1 := bytes.Buffer{}, bytes.Buffer{}
-			json.Indent(&tmp0, []byte(haveOutput), "\t\t", "   ")
-			json.Indent(&tmp1, []byte(wantOutput), "\t\t", "   ")
-			is("\n\t\t"+tmp0.String(), "\n\t\t"+tmp1.String())
-		}
+	test := func(inputOutput string) {
+		match := matchBeforeAfterSeparator.FindStringIndex(inputOutput)
+		input := strings.TrimSpace(inputOutput[0:match[0]])
+		wantOutput := strings.TrimSpace(inputOutput[match[1]:])
+		_, program, err := testParse(input)
+		assert.Equal(t, err, nil)
+		haveOutput := testMarshal(program)
+		tmp0, tmp1 := bytes.Buffer{}, bytes.Buffer{}
+		json.Indent(&tmp0, []byte(haveOutput), "\t\t", "   ")
+		json.Indent(&tmp1, []byte(wantOutput), "\t\t", "   ")
+		assert.Equal(t, "\n\t\t"+tmp0.String(), "\n\t\t"+tmp1.String())
+	}
 
-		test(`
+	test(`
         ---
 []
         `)
 
-		test(`
+	test(`
         ;
         ---
 [
@@ -220,7 +220,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         ;;;
         ---
 [
@@ -230,7 +230,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         1; true; abc; "abc"; null;
         ---
 [
@@ -252,7 +252,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         { 1; null; 3.14159; ; }
         ---
 [
@@ -273,7 +273,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         new abc();
         ---
 [
@@ -288,7 +288,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         new abc(1, 3.14159)
         ---
 [
@@ -310,7 +310,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         true ? false : true
         ---
 [
@@ -330,7 +330,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         true || false
         ---
 [
@@ -348,7 +348,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         0 + { abc: true }
         ---
 [
@@ -373,7 +373,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         1 == "1"
         ---
 [
@@ -391,7 +391,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         abc(1)
         ---
 [
@@ -410,7 +410,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         Math.pow(3, 2)
         ---
 [
@@ -437,7 +437,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         1, 2, 3
         ---
 [
@@ -457,7 +457,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         / abc /   gim;
         ---
 [
@@ -467,7 +467,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         if (0)
             1;
         ---
@@ -485,7 +485,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         0+function(){
             return;
         }
@@ -511,7 +511,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         xyzzy // Ignore it
         // Ignore this
         // And this
@@ -534,7 +534,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         ((x & (x = 1)) !== 0)
         ---
 [
@@ -567,7 +567,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         { abc: 'def' }
         ---
 [
@@ -586,7 +586,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         // This is not an object, this is a string literal with a label!
         ({ abc: 'def' })
         ---
@@ -604,7 +604,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         [,]
         ---
 [
@@ -616,7 +616,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         [,,]
         ---
 [
@@ -629,7 +629,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         ({ get abc() {} })
         ---
 [
@@ -648,7 +648,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         /abc/.source
         ---
 [
@@ -663,7 +663,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
                 xyzzy
 
         throw new TypeError("Nothing happens.")
@@ -689,12 +689,12 @@ func TestParserAST(t *testing.T) {
 ]
 	`)
 
-		// When run, this will call a type error to be thrown
-		// This is essentially the same as:
-		//
-		// var abc = 1(function(){})()
-		//
-		test(`
+	// When run, this will call a type error to be thrown
+	// This is essentially the same as:
+	//
+	// var abc = 1(function(){})()
+	//
+	test(`
         var abc = 1
         (function(){
         })()
@@ -729,7 +729,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         "use strict"
         ---
 [
@@ -739,7 +739,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         "use strict"
         abc = 1 + 2 + 11
         ---
@@ -776,7 +776,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         abc = function() { 'use strict' }
         ---
 [
@@ -799,7 +799,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         for (var abc in def) {
         }
         ---
@@ -821,7 +821,7 @@ func TestParserAST(t *testing.T) {
 ]
         `)
 
-		test(`
+	test(`
         abc = {
             '"': "'",
             "'": '"',
@@ -854,9 +854,9 @@ func TestParserAST(t *testing.T) {
 ]
             `)
 
-		return
+	return
 
-		test(`
+	test(`
         if (!abc && abc.jkl(def) && abc[0] === +abc[0] && abc.length < ghi) {
         }
         ---
@@ -926,5 +926,5 @@ func TestParserAST(t *testing.T) {
   }
 ]
         `)
-	})
+
 }

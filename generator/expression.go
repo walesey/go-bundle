@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/robertkrimen/otto/ast"
-	"github.com/robertkrimen/otto/token"
+	"github.com/mamaar/risotto/ast"
+	"github.com/mamaar/risotto/token"
 	"reflect"
 )
 
