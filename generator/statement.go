@@ -214,7 +214,6 @@ func (g *generator) expressionStatement(e *ast.ExpressionStatement) error {
 
 func (g *generator) variableStatement(v *ast.VariableStatement) error {
 	g.writeLine("var ")
-	g.indentLevel++
 
 	for i, vexp := range v.List {
 		if len(v.List) > 1 {
@@ -232,6 +231,5 @@ func (g *generator) variableStatement(v *ast.VariableStatement) error {
 			g.write(";")
 		}
 	}
-	g.indentLevel--
 	return nil
 }

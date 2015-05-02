@@ -9,6 +9,8 @@ import (
 
 func (g *generator) generateExpression(exp ast.Expression) error {
 	switch exp.(type) {
+	case *ast.JSXExpression:
+		return g.jsxExpression(exp.(*ast.JSXExpression))
 	case *ast.VariableExpression:
 		return g.variableExpression(exp.(*ast.VariableExpression))
 	case *ast.FunctionLiteral:
@@ -54,6 +56,33 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 	default:
 		return fmt.Errorf("Expression is not implemented: <%v>", reflect.TypeOf(exp))
 	}
+}
+
+func (g *generator) jsxExpression(jsx *ast.JSXExpression) error {
+	g.write("React.createElement(")
+
+	openingElement := jsx.OpeningElement
+	elementName := openingElement.Name.Name
+	if rune(elementName[0]) >= 'a' && rune(elementName[0]) <= 'z' {
+		g.write(escapeKey(elementName))
+	} else {
+		g.write(elementName)
+	}
+	g.write(", ")
+
+	properties := openingElement.PropertyList
+	if len(properties) > 0 {
+		propObject := &ast.ObjectLiteral{Value: properties}
+		if err := g.objectLiteral(propObject); err != nil {
+			return err
+		}
+	} else {
+		g.write("null")
+	}
+
+	g.write(")")
+
+	return nil
 }
 
 func (g *generator) sequenceExpression(s *ast.SequenceExpression) error {
@@ -255,7 +284,7 @@ func (g *generator) objectLiteral(o *ast.ObjectLiteral) error {
 		g.write("\n")
 	}
 	g.indentLevel--
-	g.writeIndentation("}")
+	g.writeLine("}")
 	return nil
 }
 
