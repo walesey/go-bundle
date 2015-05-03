@@ -31,29 +31,34 @@ type (
 		_expressionNode()
 	}
 
-	JSXExpression interface {
-		Node
-	}
-
 	JSXText struct {
-		JSXExpression
+		Expression
 		Pos     file.Idx
 		Literal string
 	}
 
+	JSXVariable struct {
+		Expression
+		Pos        file.Idx
+		Literal    string
+		Identifier *Identifier
+	}
+
 	JSXElement struct {
-		JSXExpression
+		Expression
 		LeftTag      file.Idx
 		RightTag     file.Idx
 		Name         *Identifier
 		SelfClosing  bool
+		IsOpening    bool
 		PropertyList []Property
 	}
 
 	JSXBlock struct {
-		OpeningElement JSXElement
-		ClosingElement JSXElement
-		Body           []*JSXExpression
+		Expression
+		OpeningElement *JSXElement
+		ClosingElement *JSXElement
+		Body           []Expression
 	}
 
 	ArrayLiteral struct {

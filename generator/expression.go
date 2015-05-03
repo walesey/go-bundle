@@ -9,6 +9,8 @@ import (
 
 func (g *generator) generateExpression(exp ast.Expression) error {
 	switch exp.(type) {
+	case *ast.JSXText:
+		return g.jsxText(exp.(*ast.JSXText))
 	case *ast.JSXBlock:
 		return g.jsxBlockExpression(exp.(*ast.JSXBlock))
 	case *ast.VariableExpression:
@@ -58,6 +60,11 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 	}
 }
 
+func (g *generator) jsxText(jsx *ast.JSXText) error {
+	g.write(fmt.Sprintf("\"%s\"", jsx.Literal))
+	return nil
+}
+
 func (g *generator) jsxBlockExpression(jsx *ast.JSXBlock) error {
 	g.write("React.createElement(")
 
@@ -78,6 +85,11 @@ func (g *generator) jsxBlockExpression(jsx *ast.JSXBlock) error {
 		}
 	} else {
 		g.write("null")
+	}
+
+	for _, c := range jsx.Body {
+		g.write(", ")
+		g.generateExpression(c)
 	}
 
 	g.write(")")
