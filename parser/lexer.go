@@ -419,31 +419,32 @@ func (self *_parser) skipMultiLineComment() {
 }
 
 func (self *_parser) skipWhiteSpace() {
-	for {
-		switch self.chr {
-		case ' ', '\t', '\f', '\v', '\u00a0', '\ufeff':
-			self.read()
-			continue
-		case '\r':
-			if self._peek() == '\n' {
-				self.read()
-			}
-			fallthrough
-		case '\u2028', '\u2029', '\n':
-			if self.insertSemicolon {
-				return
-			}
-			self.read()
-			continue
-		}
-		if self.chr >= utf8.RuneSelf {
-			if unicode.IsSpace(self.chr) {
-				self.read()
-				continue
-			}
-		}
-		break
+	for self.isWhiteSpace() {
+		self.read()
 	}
+}
+
+func (self *_parser) isWhiteSpace() bool {
+	switch self.chr {
+	case ' ', '\t', '\f', '\v', '\u00a0', '\ufeff':
+		return true
+	case '\r':
+		if self._peek() == '\n' {
+			return true
+		}
+		return false
+	case '\u2028', '\u2029', '\n':
+		if self.insertSemicolon {
+			return false
+		}
+		return true
+	}
+	if self.chr >= utf8.RuneSelf {
+		if unicode.IsSpace(self.chr) {
+			return true
+		}
+	}
+	return false
 }
 
 func (self *_parser) skipLineWhiteSpace() {
