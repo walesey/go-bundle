@@ -5,6 +5,7 @@ const (
 
 	ILLEGAL
 	EOF
+	WHITESPACE
 	COMMENT
 	KEYWORD
 
@@ -114,6 +115,7 @@ const (
 var token2string = [...]string{
 	ILLEGAL:                     "ILLEGAL",
 	EOF:                         "EOF",
+	WHITESPACE:                  "WHITESPACE",
 	COMMENT:                     "COMMENT",
 	KEYWORD:                     "KEYWORD",
 	STRING:                      "STRING",

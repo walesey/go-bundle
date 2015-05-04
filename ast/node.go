@@ -61,6 +61,11 @@ type (
 		Body           []Expression
 	}
 
+	WhiteSpaceLiteral struct {
+		Idx     file.Idx
+		Literal string
+	}
+
 	ArrayLiteral struct {
 		LeftBracket  file.Idx
 		RightBracket file.Idx
@@ -209,6 +214,7 @@ type (
 func (*JSXText) _expressionNode()               {}
 func (*JSXElement) _expressionNode()            {}
 func (*JSXBlock) _expressionNode()              {}
+func (*WhiteSpaceLiteral) _expressionNode()     {}
 func (*ArrayLiteral) _expressionNode()          {}
 func (*AssignExpression) _expressionNode()      {}
 func (*BadExpression) _expressionNode()         {}
@@ -426,6 +432,7 @@ type Program struct {
 func (self *JSXText) Idx0() file.Idx               { return self.Pos }
 func (self *JSXElement) Idx0() file.Idx            { return self.LeftTag }
 func (self *JSXBlock) Idx0() file.Idx              { return self.OpeningElement.Idx0() }
+func (self *WhiteSpaceLiteral) Idx0() file.Idx     { return self.Idx }
 func (self *ArrayLiteral) Idx0() file.Idx          { return self.LeftBracket }
 func (self *AssignExpression) Idx0() file.Idx      { return self.Left.Idx0() }
 func (self *BadExpression) Idx0() file.Idx         { return self.From }
@@ -482,6 +489,7 @@ func (self *JSXBlock) Idx1() file.Idx {
 }
 func (self *JSXText) Idx1() file.Idx               { return file.Idx(int(self.Pos) + len(self.Literal)) }
 func (self *JSXElement) Idx1() file.Idx            { return self.RightTag }
+func (self *WhiteSpaceLiteral) Idx1() file.Idx     { return file.Idx(int(self.Idx) + len(self.Literal)) }
 func (self *ArrayLiteral) Idx1() file.Idx          { return self.RightBracket }
 func (self *AssignExpression) Idx1() file.Idx      { return self.Right.Idx1() }
 func (self *BadExpression) Idx1() file.Idx         { return self.To }
