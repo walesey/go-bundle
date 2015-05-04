@@ -51,8 +51,9 @@ type _parser struct {
 
 func _newParser(filename, src string, base int) *_parser {
 	return &_parser{
-		chr:    ' ', // This is set so we can start scanning by skipping whitespace
+		chr:    ' ',
 		str:    src,
+		offset: -1,
 		length: len(src),
 		base:   base,
 		file:   file.NewFile(filename, src, base),
@@ -156,7 +157,12 @@ func (self *_parser) parse() (*ast.Program, error) {
 }
 
 func (self *_parser) next() {
-	self.token, self.literal, self.idx = self.scan()
+	for {
+		self.token, self.literal, self.idx = self.scan()
+		if self.token != token.WHITESPACE {
+			break
+		}
+	}
 }
 
 func (self *_parser) optionalSemicolon() {

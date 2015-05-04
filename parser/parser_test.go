@@ -50,7 +50,7 @@ func TestParseFunction(t *testing.T) {
 	test := func(prm, bdy string, expect interface{}) *ast.FunctionLiteral {
 		function, err := ParseFunction(prm, bdy)
 		if err != nil && expect != nil {
-			assert.Equal(t, firstErr(err).Error(), expect)
+			assert.Equal(t, expect, firstErr(err).Error())
 		}
 		return function
 	}
@@ -75,7 +75,7 @@ func TestParserErr(t *testing.T) {
 		parser := newParser("", input)
 		program, err := parser.parse()
 		if err != nil {
-			assert.Equal(t, firstErr(err).Error(), expect)
+			assert.Equal(t, expect, firstErr(err).Error())
 		}
 		return program, parser
 	}
@@ -481,7 +481,7 @@ func TestParser(t *testing.T) {
 	test := func(source string, chk interface{}) *ast.Program {
 		_, program, err := testParse(source)
 		if err != nil {
-			assert.Equal(t, firstErr(err).Error(), chk)
+			assert.Equal(t, chk, firstErr(err).Error())
 		}
 		return program
 	}
@@ -858,7 +858,7 @@ func TestParser(t *testing.T) {
 
 	test(`
             var abc = 1 /
-                2
+            2
             debugger
         `, nil)
 
@@ -919,8 +919,8 @@ func Test_parseStringLiteral(t *testing.T) {
 	// err
 	test = func(have, want string) {
 		have, err := parseStringLiteral(have)
-		assert.Equal(t, err.Error(), want)
-		assert.Equal(t, have, "")
+		assert.Equal(t, want, err.Error())
+		assert.Equal(t, "", have)
 	}
 
 	test(`\u`, `invalid escape: \u: len("") != 4`)
@@ -938,8 +938,8 @@ func Test_parseNumberLiteral(t *testing.T) {
 
 	test := func(input string, expect interface{}) {
 		result, err := parseNumberLiteral(input)
-		assert.Equal(t, err, nil)
-		assert.Equal(t, result, expect)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, expect, result)
 	}
 
 	test("0", 0)

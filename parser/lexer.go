@@ -374,6 +374,10 @@ func (self *_parser) _peek() rune {
 }
 
 func (self *_parser) read() {
+	if self.offset < 0 {
+		self.offset = 0
+	}
+
 	if self.offset < self.length {
 		self.chrOffset = self.offset
 		chr, width := rune(self.str[self.offset]), 1
