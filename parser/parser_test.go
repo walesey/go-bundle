@@ -44,15 +44,6 @@ func testParse(src string) (parser *_parser, program *ast.Program, err error) {
 func TestParseFile(t *testing.T) {
 	_, err := ParseFile(nil, "", `/abc/`, 0)
 	assert.NoError(t, err)
-
-	_, err = ParseFile(nil, "", `/(?!def)abc/`, IgnoreRegExpErrors)
-	assert.NoError(t, err)
-
-	_, err = ParseFile(nil, "", `/(?!def)abc/`, 0)
-	assert.EqualError(t, err, "(anonymous): Line 1:1 Invalid regular expression: re2: Invalid (?!) <lookahead>")
-
-	_, err = ParseFile(nil, "", `/(?!def)abc/; return`, IgnoreRegExpErrors)
-	assert.EqualError(t, err, "(anonymous): Line 1:15 Illegal return statement")
 }
 
 func TestParseFunction(t *testing.T) {
