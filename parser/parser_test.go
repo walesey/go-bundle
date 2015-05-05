@@ -46,30 +46,6 @@ func TestParseFile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestParseFunction(t *testing.T) {
-	test := func(prm, bdy string, expect interface{}) *ast.FunctionLiteral {
-		function, err := ParseFunction(prm, bdy)
-		if err != nil && expect != nil {
-			assert.Equal(t, expect, firstErr(err).Error())
-		}
-		return function
-	}
-
-	test("a, b,c,d", "", nil)
-
-	test("a, b;,c,d", "", "(anonymous): Line 1:15 Unexpected token ;")
-
-	test("this", "", "(anonymous): Line 1:11 Unexpected token this")
-
-	test("a, b, c, null", "", "(anonymous): Line 1:20 Unexpected token null")
-
-	test("a, b,c,d", "return;", nil)
-
-	test("a, b,c,d", "break;", "(anonymous): Line 2:1 Illegal break statement")
-
-	test("a, b,c,d", "{}", nil)
-}
-
 func TestParserErr(t *testing.T) {
 	test := func(input string, expect interface{}) (*ast.Program, *_parser) {
 		parser := newParser("", input)
