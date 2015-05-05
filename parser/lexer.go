@@ -120,11 +120,25 @@ func isLineTerminator(chr rune) bool {
 func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 	self.implicitSemicolon = false
 
-	for {
-		self.skipWhiteSpace()
+	// Initialization of data on first run
+	if self.offset < 0 {
+		self.offset = 0
+		self.read()
+	}
 
+	for {
 		idx = self.idxOf(self.chrOffset)
 		insertSemicolon := false
+
+		if self.isWhiteSpace() {
+			offset := self.chrOffset
+			for self.isWhiteSpace() {
+				self.read()
+			}
+			tkn = token.WHITESPACE
+			literal = string(self.str[offset:self.chrOffset])
+			return
+		}
 
 		switch chr := self.chr; {
 		case isIdentifierStart(chr):
@@ -134,6 +148,7 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 				tkn = token.ILLEGAL
 				break
 			}
+
 			if len(literal) > 1 {
 				// Keywords are longer than 1 character, avoid lookup otherwise
 				var strict bool
@@ -374,10 +389,6 @@ func (self *_parser) _peek() rune {
 }
 
 func (self *_parser) read() {
-	if self.offset < 0 {
-		self.offset = 0
-	}
-
 	if self.offset < self.length {
 		self.chrOffset = self.offset
 		chr, width := rune(self.str[self.offset]), 1
@@ -434,9 +445,6 @@ func (self *_parser) isWhiteSpace() bool {
 		}
 		return false
 	case '\u2028', '\u2029', '\n':
-		if self.insertSemicolon {
-			return false
-		}
 		return true
 	}
 	if self.chr >= utf8.RuneSelf {
