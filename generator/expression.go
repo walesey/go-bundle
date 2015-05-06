@@ -303,7 +303,7 @@ func (g *generator) objectLiteral(o *ast.ObjectLiteral) error {
 		g.write("\n")
 	}
 	g.indentLevel--
-	g.writeLine("}")
+	g.writeAlone("}")
 	return nil
 }
 

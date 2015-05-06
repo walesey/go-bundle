@@ -21,6 +21,7 @@ type generator struct {
 	expressionLevel    int
 	isInInitializer    bool
 	isCalleeExpression bool
+	isElseStatement    bool
 }
 
 // Generate builds javascript from the program
@@ -64,24 +65,37 @@ func (g *generator) write(s string) {
 	}
 }
 
-func (g *generator) writeIndentation(s string) int {
+// Ensures that s will be the first statement on a line
+func (g *generator) writeAlone(s string) {
+	if g.buffer.Len() <= 0 {
+		return
+	}
+	if g.buffer.String()[g.buffer.Len()-1] != '\n' {
+		g.writeLine(s)
+		return
+	}
+	g.writeIndentation(s)
+}
+
+func (g *generator) writeIndentation(s string) {
 
 	if g.currentChar > 0 && g.currentChar%len(g.indentation) == 0 {
 		g.write(s)
-		return len(s)
+		return
 	}
 
 	inlineIndent := len(g.indentationString()) - g.currentChar%len(g.indentation)
+	if inlineIndent < 0 {
+		inlineIndent = 0
+	}
 	indent := strings.Repeat(" ", inlineIndent)
 	g.write(indent + s)
-	return inlineIndent + len(s)
+	g.currentChar = inlineIndent + len(s)
 }
 
 func (g *generator) writeLine(s string) {
 	g.write("\n")
-	g.currentLine++
-	chrs := g.writeIndentation(s)
-	g.currentChar = chrs
+	g.writeIndentation(s)
 }
 
 func (g *generator) code() io.Reader {

@@ -7,6 +7,11 @@ import (
 )
 
 func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration) error {
+	defer func() {
+		if g.isElseStatement {
+			g.isElseStatement = false
+		}
+	}()
 	switch stmt.(type) {
 	case *ast.VariableStatement:
 		return g.variableStatement(stmt.(*ast.VariableStatement))
@@ -147,7 +152,10 @@ func (g *generator) throwStatement(t *ast.ThrowStatement) error {
 }
 
 func (g *generator) ifStatement(i *ast.IfStatement) error {
-	g.writeLine("if (")
+	if !g.isElseStatement {
+		g.write("\n")
+	}
+	g.write("if (")
 	g.descentExpression()
 	if err := g.generateExpression(i.Test); err != nil {
 		return err
@@ -162,6 +170,7 @@ func (g *generator) ifStatement(i *ast.IfStatement) error {
 
 	if i.Alternate != nil {
 		g.write(" else ")
+		g.isElseStatement = true
 		return g.generateStatement(i.Alternate, nil)
 	}
 
@@ -173,7 +182,7 @@ func (g *generator) emptyStatement(r *ast.EmptyStatement) error {
 }
 
 func (g *generator) returnStatement(r *ast.ReturnStatement) error {
-	g.writeLine("return ")
+	g.writeIndentation("return ")
 	g.descentExpression()
 	if err := g.generateExpression(r.Argument); err != nil {
 		return err
@@ -199,12 +208,12 @@ func (g *generator) blockStatement(b *ast.BlockStatement, dcls []ast.Declaration
 	}
 
 	g.indentLevel--
-	g.writeLine("}")
+	g.writeAlone("}")
 	return nil
 }
 
 func (g *generator) expressionStatement(e *ast.ExpressionStatement) error {
-	g.writeLine("")
+	g.writeAlone("")
 	if err := g.generateExpression(e.Expression); err != nil {
 		return err
 	}

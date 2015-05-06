@@ -502,10 +502,7 @@ func (self *_parser) scanEscape(quote rune) {
 	}
 }
 
-func (self *_parser) scanString(offset int) (string, error) {
-	// " ' /
-	quote := rune(self.str[offset])
-
+func (self *_parser) scanStringWithQuote(offset int, quote rune) (string, error) {
 	for self.chr != quote {
 		chr := self.chr
 		if chr == '\n' || chr == '\r' || chr == '\u2028' || chr == '\u2029' || chr < 0 {
@@ -543,6 +540,12 @@ newline:
 		self.error(self.idxOf(offset), err)
 	}
 	return "", errors.New(err)
+}
+
+func (self *_parser) scanString(offset int) (string, error) {
+	// " ' /
+	quote := rune(self.str[offset])
+	return self.scanStringWithQuote(offset, quote)
 }
 
 func (self *_parser) scanNewline() {
