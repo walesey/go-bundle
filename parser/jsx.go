@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"github.com/mamaar/risotto/ast"
 	"github.com/mamaar/risotto/token"
 )
@@ -31,16 +32,18 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 	text := &ast.JSXText{
 		Pos: self.idx,
 	}
-	text.Literal = "\""
-	for self.token != token.LESS && self.token != token.LEFT_BRACE &&
-		self.token != token.EOF {
-		text.Literal += self.literal
+	buf := bytes.NewBufferString("\"")
+
+	for self.token != token.EOF && self.token != token.LEFT_BRACE &&
+		self.token != token.LESS {
+		buf.WriteString(self.literal)
 		if self.literal == "" {
-			text.Literal += self.token.String()
+			buf.WriteString(self.token.String())
 		}
 		self.rawNext()
 	}
-	text.Literal += "\""
+	buf.WriteString("\"")
+	text.Literal = buf.String()
 	return text
 }
 
