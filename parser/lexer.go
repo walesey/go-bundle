@@ -145,6 +145,11 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 			var err error
 			literal, err = self.scanIdentifier()
 			if err != nil {
+				if chr == '\\' {
+					tkn = token.BACKSLASH
+					break
+				}
+
 				tkn = token.ILLEGAL
 				break
 			}

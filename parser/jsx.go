@@ -34,8 +34,7 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 	}
 	buf := bytes.NewBufferString("\"")
 
-	for self.token != token.EOF && self.token != token.LEFT_BRACE &&
-		self.token != token.LESS {
+	for self.token != token.EOF && self.token != token.LEFT_BRACE && self.token != token.LESS {
 		buf.WriteString(self.literal)
 		if self.literal == "" {
 			buf.WriteString(self.token.String())

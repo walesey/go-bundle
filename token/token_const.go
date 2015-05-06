@@ -74,6 +74,7 @@ const (
 	SEMICOLON         // ;
 	COLON             // :
 	QUESTION_MARK     // ?
+	BACKSLASH
 
 	firstKeyword
 	IF
@@ -173,6 +174,7 @@ var token2string = [...]string{
 	SEMICOLON:                   ";",
 	COLON:                       ":",
 	QUESTION_MARK:               "?",
+	BACKSLASH:                   "\\",
 	IF:                          "if",
 	IN:                          "in",
 	DO:                          "do",
