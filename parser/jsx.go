@@ -32,7 +32,7 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 	text := &ast.JSXText{
 		Pos: self.idx,
 	}
-	buf := bytes.NewBufferString("\"")
+	buf := &bytes.Buffer{}
 
 	for self.token != token.EOF && self.token != token.LEFT_BRACE && self.token != token.LESS {
 		buf.WriteString(self.literal)
@@ -41,7 +41,6 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 		}
 		self.rawNext()
 	}
-	buf.WriteString("\"")
 	text.Literal = buf.String()
 	return text
 }
@@ -123,7 +122,7 @@ func (self *_parser) parseJSXValue() ast.Expression {
 	if self.token == token.STRING {
 		t := &ast.JSXText{
 			Pos:     self.idx,
-			Literal: self.literal,
+			Literal: self.literal[1 : len(self.literal)-1],
 		}
 		self.next()
 		return t

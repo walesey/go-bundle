@@ -69,7 +69,14 @@ func (g *generator) jsxExpression(jsx *ast.JSXExpression) error {
 }
 
 func (g *generator) jsxText(jsx *ast.JSXText) error {
-	g.write(strings.Replace(jsx.Literal, "\n", "\\\n", -1))
+	trimmed := jsx.Literal
+	if idx := strings.Index(trimmed, "\n"); idx != -1 {
+		trimmed = trimmed[0:idx]
+	}
+
+	g.write("\"")
+	g.write(trimmed)
+	g.write("\"")
 	return nil
 }
 
