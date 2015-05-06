@@ -5,6 +5,7 @@ import (
 	"github.com/mamaar/risotto/ast"
 	"github.com/mamaar/risotto/token"
 	"reflect"
+	"strings"
 )
 
 func (g *generator) generateExpression(exp ast.Expression) error {
@@ -68,7 +69,7 @@ func (g *generator) jsxExpression(jsx *ast.JSXExpression) error {
 }
 
 func (g *generator) jsxText(jsx *ast.JSXText) error {
-	g.write(jsx.Literal)
+	g.write(strings.Replace(jsx.Literal, "\n", "\\\n", -1))
 	return nil
 }
 
