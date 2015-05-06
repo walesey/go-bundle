@@ -129,13 +129,17 @@ func (self *_parser) slice(idx0, idx1 file.Idx) string {
 }
 
 func (self *_parser) parse() (*ast.Program, error) {
+	self.next()
 	program := self.parseProgram()
-	if false {
-		self.errors.Sort()
-	}
 	return program, self.errors.Err()
 }
 
+// rawNext moves pointer to the next token
+func (self *_parser) rawNext() {
+	self.token, self.literal, self.idx = self.scan()
+}
+
+// next moves pointer to next non-whitespace token
 func (self *_parser) next() {
 	for {
 		self.token, self.literal, self.idx = self.scan()
@@ -146,19 +150,6 @@ func (self *_parser) next() {
 }
 
 func (self *_parser) optionalSemicolon() {
-	if self.token == token.SEMICOLON {
-		self.next()
-		return
-	}
-
-	if self.implicitSemicolon {
-		self.implicitSemicolon = false
-		return
-	}
-
-	if self.token != token.EOF && self.token != token.RIGHT_BRACE {
-		self.expect(token.SEMICOLON)
-	}
 }
 
 func (self *_parser) semicolon() {

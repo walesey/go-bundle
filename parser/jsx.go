@@ -40,7 +40,7 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 		if self.literal == "" {
 			text.Literal += self.token.String()
 		}
-		self.next()
+		self.rawNext()
 	}
 
 	return text

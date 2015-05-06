@@ -32,7 +32,7 @@ func TestGenerator(t *testing.T) {
 		expected := &bytes.Buffer{}
 
 		generated, err := ParseAndGenerate(inFd)
-		assert.NoError(t, err)
+		assert.NoError(t, err, testName)
 		in.ReadFrom(generated)
 		expected.ReadFrom(expectedFd)
 
