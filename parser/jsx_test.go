@@ -9,6 +9,8 @@ import (
 var validJSX = []string{
 	"<div />",
 	"<div param=\"value\"></div>",
+	"<div><div /></div>",
+	"<div prop={name} />",
 }
 
 func p(jsx string) (*ast.Program, error) {

@@ -9,6 +9,8 @@ import (
 
 func (g *generator) generateExpression(exp ast.Expression) error {
 	switch exp.(type) {
+	case *ast.JSXVariable:
+		return g.jsxVariable(exp.(*ast.JSXVariable))
 	case *ast.JSXText:
 		return g.jsxText(exp.(*ast.JSXText))
 	case *ast.JSXBlock:
@@ -58,6 +60,11 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 	default:
 		return fmt.Errorf("Expression is not implemented: <%v>", reflect.TypeOf(exp))
 	}
+}
+
+func (g *generator) jsxVariable(jsx *ast.JSXVariable) error {
+	g.write(jsx.Identifier.Name)
+	return nil
 }
 
 func (g *generator) jsxText(jsx *ast.JSXText) error {
