@@ -37,11 +37,10 @@ type (
 		Literal string
 	}
 
-	JSXVariable struct {
+	JSXExpression struct {
 		Expression
 		Pos        file.Idx
-		Literal    string
-		Identifier *Identifier
+		Identifier Expression
 	}
 
 	JSXElement struct {
@@ -212,6 +211,7 @@ type (
 // _expressionNode
 
 func (*JSXText) _expressionNode()               {}
+func (*JSXExpression) _expressionNode()         {}
 func (*JSXElement) _expressionNode()            {}
 func (*JSXBlock) _expressionNode()              {}
 func (*WhiteSpaceLiteral) _expressionNode()     {}

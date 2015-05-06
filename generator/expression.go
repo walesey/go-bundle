@@ -9,8 +9,8 @@ import (
 
 func (g *generator) generateExpression(exp ast.Expression) error {
 	switch exp.(type) {
-	case *ast.JSXVariable:
-		return g.jsxVariable(exp.(*ast.JSXVariable))
+	case *ast.JSXExpression:
+		return g.jsxExpression(exp.(*ast.JSXExpression))
 	case *ast.JSXText:
 		return g.jsxText(exp.(*ast.JSXText))
 	case *ast.JSXBlock:
@@ -62,13 +62,13 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 	}
 }
 
-func (g *generator) jsxVariable(jsx *ast.JSXVariable) error {
-	g.write(jsx.Identifier.Name)
+func (g *generator) jsxExpression(jsx *ast.JSXExpression) error {
+	g.generateExpression(jsx.Identifier)
 	return nil
 }
 
 func (g *generator) jsxText(jsx *ast.JSXText) error {
-	g.write(fmt.Sprintf("\"%s\"", jsx.Literal))
+	g.write(jsx.Literal)
 	return nil
 }
 

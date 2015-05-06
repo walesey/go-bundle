@@ -10,7 +10,7 @@ func (self *_parser) parseJSX() ast.Expression {
 	case token.LESS:
 		return self.parseJSXElement()
 	case token.LEFT_BRACE:
-		return self.parseJSXVariable()
+		return self.parseJSXExpression()
 	case token.SEMICOLON:
 		self.next()
 		return self.parsePrimaryExpression()
@@ -18,13 +18,11 @@ func (self *_parser) parseJSX() ast.Expression {
 	return self.parseJSXText()
 }
 
-func (self *_parser) parseJSXVariable() *ast.JSXVariable {
-	variable := &ast.JSXVariable{}
+func (self *_parser) parseJSXExpression() *ast.JSXExpression {
+	variable := &ast.JSXExpression{}
 	variable.Pos = self.expect(token.LEFT_BRACE)
-	variable.Identifier = self.parseIdentifier()
+	variable.Identifier = self.parseExpression()
 	self.expect(token.RIGHT_BRACE)
-
-	variable.Literal = "{" + variable.Identifier.Name + "}"
 
 	return variable
 }
@@ -33,7 +31,7 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 	text := &ast.JSXText{
 		Pos: self.idx,
 	}
-
+	text.Literal = "\""
 	for self.token != token.LESS && self.token != token.LEFT_BRACE &&
 		self.token != token.EOF {
 		text.Literal += self.literal
@@ -42,7 +40,7 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 		}
 		self.rawNext()
 	}
-
+	text.Literal += "\""
 	return text
 }
 
@@ -120,13 +118,14 @@ func (self *_parser) parseJSXProperty() ast.Property {
 }
 
 func (self *_parser) parseJSXValue() ast.Expression {
-	if self.token == token.LEFT_BRACE {
+	if self.token == token.STRING {
+		t := &ast.JSXText{
+			Pos:     self.idx,
+			Literal: self.literal,
+		}
 		self.next()
-	}
-	v := self.parsePrimaryExpression()
-	if self.token == token.RIGHT_BRACE {
-		self.next()
+		return t
 	}
 
-	return v
+	return self.parseJSXExpression()
 }
