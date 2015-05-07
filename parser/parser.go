@@ -298,9 +298,7 @@ func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expres
 // resolvePath resolves a module path based on if it's relative or global.
 func (self *_parser) resolvePath(path string) (string, bool) {
 	if strings.HasPrefix(path, "./") {
-		println("Is rel")
 		abs, _ := filepath.Abs(filepath.Join(self.filepath, path))
-		println(abs)
 		if _, err := os.Open(abs); err != nil {
 			return "", false
 		}
@@ -315,4 +313,29 @@ func (self *_parser) resolvePath(path string) (string, bool) {
 		return abs, true
 	}
 	return "", false
+}
+
+// Open the entrypoint for a module for reading
+func (self *_parser) parseModule(popts ParserOptions) (*ast.Program, error) {
+	fd, err := os.Open(popts.FileName)
+	if err != nil {
+		return nil, err
+	}
+
+	fInfo, err := fd.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if fInfo.IsDir() {
+		popts.FileName = filepath.Join(popts.FileName, "index.js")
+		fd, err = os.Open(popts.FileName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	parser, err := NewParser(fd, popts)
+	if err != nil {
+		return nil, err
+	}
+	return parser.Parse()
 }

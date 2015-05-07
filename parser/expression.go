@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/mamaar/risotto/ast"
 	"github.com/mamaar/risotto/file"
 	"github.com/mamaar/risotto/token"
@@ -330,7 +331,17 @@ func (self *_parser) parseCallExpression(left ast.Expression) ast.Expression {
 
 	// If calling require function with a parameter
 	if module, ok := self.isRequireModule(left, argumentList); ok {
-		self.modules[module] = &ast.Program{}
+		mPath, ok := self.resolvePath(module)
+		if !ok {
+			panic(fmt.Sprintf("Could not open module '%s'", mPath))
+		}
+		if _, ok := self.modules[mPath]; !ok {
+			popts := ParserOptions{
+				FileName:          mPath,
+				ModulesLookupDirs: self.modulesLookupDirs,
+			}
+			self.modules[mPath], _ = self.parseModule(popts)
+		}
 	}
 
 	return &ast.CallExpression{
