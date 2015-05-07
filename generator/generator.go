@@ -42,7 +42,7 @@ func Generate(p *ast.Program) (io.Reader, error) {
 // ParseAndGenerate takes an io.Reader to be parsed and
 // generate javascript code.
 func ParseAndGenerate(in io.Reader) (io.Reader, error) {
-	prog, err := parser.ParseFile(nil, "<input>", in, parser.IgnoreRegExpErrors)
+	prog, err := parser.ParseFile(nil, "<stdin>", in, parser.IgnoreRegExpErrors)
 	if err != nil {
 		return nil, err
 	}

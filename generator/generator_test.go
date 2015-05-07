@@ -2,9 +2,11 @@ package generator
 
 import (
 	"bytes"
+	"github.com/mamaar/risotto/parser"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -15,6 +17,9 @@ func TestGenerator(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, testFile := range testFiles {
+		if testFile.IsDir() {
+			continue
+		}
 		if strings.HasSuffix(testFile.Name(), "_output.js") ||
 			strings.HasSuffix(testFile.Name(), "~") {
 			continue
@@ -31,7 +36,16 @@ func TestGenerator(t *testing.T) {
 		in := &bytes.Buffer{}
 		expected := &bytes.Buffer{}
 
-		generated, err := ParseAndGenerate(inFd)
+		lookup, _ := filepath.Abs("./test/node_modules")
+		popts := parser.ParserOptions{
+			FileName:          "<stdin>",
+			ModulesLookupDirs: []string{lookup},
+		}
+		parser, err := parser.NewParser(inFd, popts)
+		assert.NoError(t, err, testName)
+		prog, err := parser.Parse()
+		assert.NoError(t, err, testName)
+		generated, err := Generate(prog)
 		assert.NoError(t, err, testName)
 		in.ReadFrom(generated)
 		expected.ReadFrom(expectedFd)

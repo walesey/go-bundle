@@ -327,6 +327,12 @@ func (self *_parser) parseArgumentList() (argumentList []ast.Expression, idx0, i
 
 func (self *_parser) parseCallExpression(left ast.Expression) ast.Expression {
 	argumentList, idx0, idx1 := self.parseArgumentList()
+
+	// If calling require function with a parameter
+	if module, ok := self.isRequireModule(left, argumentList); ok {
+		self.modules[module] = &ast.Program{}
+	}
+
 	return &ast.CallExpression{
 		Callee:           left,
 		LeftParenthesis:  idx0,

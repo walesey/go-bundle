@@ -9,6 +9,9 @@ import (
 	"github.com/mamaar/risotto/ast"
 	"github.com/mamaar/risotto/file"
 	"github.com/mamaar/risotto/token"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // A Mode value is a set of flags (or 0). They control optional parser functionality.
@@ -20,6 +23,7 @@ const (
 
 type _parser struct {
 	filename string
+	filepath string
 	str      string
 	length   int
 	base     int
@@ -46,7 +50,18 @@ type _parser struct {
 
 	mode Mode
 
-	file *file.File
+	file              *file.File
+	modulesLookupDirs []string
+	modules           map[string]*ast.Program
+}
+
+// ParserOptions holds options passed to the parser on initialization
+// currently only used by the function NewParser.
+type ParserOptions struct {
+	FileName string
+
+	ModulesLookupDirs []string
+	Modules           map[string]*ast.Program
 }
 
 func _newParser(filename, src string, base int) *_parser {
@@ -61,6 +76,46 @@ func _newParser(filename, src string, base int) *_parser {
 
 func newParser(filename, src string) *_parser {
 	return _newParser(filename, src, 1)
+}
+
+// NewParser creates a parser object using custom options
+func NewParser(in io.Reader, options ParserOptions) (*_parser, error) {
+	filePath, err := filepath.Abs(options.FileName)
+	fileName := filepath.Base(filePath)
+	if err != nil {
+		return nil, err
+	}
+	if options.FileName == "<stdin>" {
+		fileName = "<stdin>"
+		filePath, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	lookupDirs := []string{}
+	for _, lookupDir := range options.ModulesLookupDirs {
+		if _, err := os.Open(lookupDir); err != nil {
+			continue
+		}
+		lookupDirs = append(lookupDirs, lookupDir)
+	}
+
+	buf := bytes.Buffer{}
+	buf.ReadFrom(in)
+
+	return &_parser{
+		filename: fileName,
+		filepath: filePath,
+		str:      buf.String(),
+		offset:   -1,
+		length:   buf.Len(),
+		base:     1,
+		file:     file.NewFile(filepath.Base(filePath), buf.String(), 1),
+
+		modulesLookupDirs: lookupDirs,
+		modules:           make(map[string]*ast.Program),
+	}, nil
 }
 
 func ReadSource(filename string, src interface{}) ([]byte, error) {
@@ -126,6 +181,10 @@ func (self *_parser) slice(idx0, idx1 file.Idx) string {
 	}
 
 	return ""
+}
+
+func (self *_parser) Parse() (*ast.Program, error) {
+	return self.parse()
 }
 
 func (self *_parser) parse() (*ast.Program, error) {
@@ -214,4 +273,46 @@ func (self *_parser) position(idx file.Idx) file.Position {
 	}
 
 	return position
+}
+
+// isRequireModule determines whether the callee is 'require' and returns the module path
+func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expression) (string, bool) {
+	callee, ok := c.(*ast.Identifier)
+	if !ok {
+		return "", false
+	}
+	if callee.Name != "require" {
+		return "", false
+	}
+	if len(argumentList) == 0 {
+		return "", false
+	}
+	module, ok := argumentList[0].(*ast.StringLiteral)
+	if !ok {
+		return "", false
+	}
+
+	return module.Value, true
+}
+
+// resolvePath resolves a module path based on if it's relative or global.
+func (self *_parser) resolvePath(path string) (string, bool) {
+	if strings.HasPrefix(path, "./") {
+		println("Is rel")
+		abs, _ := filepath.Abs(filepath.Join(self.filepath, path))
+		println(abs)
+		if _, err := os.Open(abs); err != nil {
+			return "", false
+		}
+		return abs, true
+	}
+
+	for _, d := range self.modulesLookupDirs {
+		abs, _ := filepath.Abs(filepath.Join(d, path))
+		if _, err := os.Open(abs); err != nil {
+			continue
+		}
+		return abs, true
+	}
+	return "", false
 }
