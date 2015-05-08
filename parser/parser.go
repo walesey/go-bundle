@@ -49,16 +49,13 @@ type _parser struct {
 	}
 
 	mode Mode
+	file *file.File
 
-	file              *file.File
+	parserOptions     ParserOptions
+	parseModular      bool
+	isModular         bool
 	modulesLookupDirs []string
-	modules           map[string]*ast.Program
-}
-
-type Module struct {
-	path         string
-	program      *ast.Program
-	dependencies []*ast.Program
+	rootModule        *ast.Module
 }
 
 // ParserOptions holds options passed to the parser on initialization
@@ -66,6 +63,7 @@ type Module struct {
 type ParserOptions struct {
 	FileName string
 
+	ParseModular      bool
 	ModulesLookupDirs []string
 	Modules           map[string]*ast.Program
 }
@@ -85,7 +83,7 @@ func newParser(filename, src string) *_parser {
 }
 
 // NewParser creates a parser object using custom options
-func NewParser(in io.Reader, options ParserOptions) (*_parser, error) {
+func NewParser(options ParserOptions) (*_parser, error) {
 	filePath, err := filepath.Abs(options.FileName)
 	fileName := filepath.Base(filePath)
 	if err != nil {
@@ -107,8 +105,13 @@ func NewParser(in io.Reader, options ParserOptions) (*_parser, error) {
 		lookupDirs = append(lookupDirs, lookupDir)
 	}
 
+	fd, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+
 	buf := bytes.Buffer{}
-	buf.ReadFrom(in)
+	buf.ReadFrom(fd)
 
 	return &_parser{
 		filename: fileName,
@@ -117,10 +120,15 @@ func NewParser(in io.Reader, options ParserOptions) (*_parser, error) {
 		offset:   -1,
 		length:   buf.Len(),
 		base:     1,
-		file:     file.NewFile(filepath.Base(filePath), buf.String(), 1),
+		file:     file.NewFile(fileName, buf.String(), 1),
 
+		parserOptions:     options,
+		parseModular:      options.ParseModular,
 		modulesLookupDirs: lookupDirs,
-		modules:           make(map[string]*ast.Program),
+		rootModule: &ast.Module{
+			Path:         filePath,
+			Dependencies: make(map[string]*ast.Module),
+		},
 	}, nil
 }
 
@@ -305,47 +313,73 @@ func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expres
 	return module.Value, true
 }
 
-// resolvePath resolves a module path based on if it's relative or global.
-func (self *_parser) resolvePath(path string) (string, bool) {
-	if strings.HasPrefix(path, ".") {
-		abs, _ := filepath.Abs(filepath.Join(self.filepath, path))
-		if _, err := os.Open(abs); err != nil {
-			return "", false
-		}
-		return abs, true
-	}
-
-	for _, d := range self.modulesLookupDirs {
-		abs, _ := filepath.Abs(filepath.Join(d, path))
-		if _, err := os.Open(abs); err != nil {
-			continue
-		}
-		return abs, true
-	}
-	return "", false
-}
-
-// Open the entrypoint for a module for reading
-func (self *_parser) parseModule(popts ParserOptions) (*ast.Program, error) {
-	fd, err := os.Open(popts.FileName)
+func (self *_parser) resolveRelativePath(path string) (string, bool) {
+	fd, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return path, false
 	}
 
 	fInfo, err := fd.Stat()
 	if err != nil {
-		return nil, err
+		return path, false
 	}
+	filePath := path
 	if fInfo.IsDir() {
-		popts.FileName = filepath.Join(popts.FileName, "index.js")
-		fd, err = os.Open(popts.FileName)
-		if err != nil {
-			return nil, err
-		}
+		filePath = filepath.Join(path, "index.js")
 	}
-	parser, err := NewParser(fd, popts)
-	if err != nil {
+
+	abs, _ := filepath.Abs(filePath)
+	if _, err := os.Open(abs); err != nil {
+		return path, false
+	}
+	return abs, true
+}
+
+// resolvePath resolves a module path based on if it's relative or global.
+func (self *_parser) resolvePath(path string) (string, bool) {
+	if strings.HasPrefix(path, ".") {
+		return self.resolveRelativePath(path)
+	}
+
+	for _, d := range self.modulesLookupDirs {
+		abs, _ := filepath.Abs(filepath.Join(d, path))
+		fd, err := os.Open(abs)
+		if err != nil {
+			continue
+		}
+		defer fd.Close()
+		if fInfo, err := fd.Stat(); err == nil && fInfo.IsDir() {
+			abs = filepath.Join(abs, "index.js")
+		}
+
+		return abs, true
+	}
+	return path, false
+}
+
+// Open the entrypoint for a module for reading
+func (self *_parser) ParseModule() (*ast.Module, error) {
+	if err := self.parseModule(self.filepath); err != nil {
 		return nil, err
 	}
-	return parser.Parse()
+	return self.rootModule, nil
+}
+
+func (self *_parser) parseModule(path string) error {
+	self.rootModule = &ast.Module{
+		Path:         path,
+		Dependencies: make(map[string]*ast.Module),
+	}
+	self.next()
+	prog, err := self.parseProgram()
+	if err != nil {
+		return err
+	}
+	self.rootModule.Program = prog
+
+	return nil
+}
+
+func (self *_parser) IsModular() bool {
+	return self.isModular
 }

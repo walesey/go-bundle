@@ -3,12 +3,13 @@ package generator
 import (
 	"bytes"
 	"fmt"
-	"github.com/mamaar/risotto/ast"
-	"github.com/mamaar/risotto/parser"
 	"io"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/mamaar/risotto/ast"
+	"github.com/mamaar/risotto/parser"
 )
 
 type generator struct {
@@ -22,17 +23,32 @@ type generator struct {
 	isInInitializer    bool
 	isCalleeExpression bool
 	isElseStatement    bool
+
+	moduleCache map[string]*ast.Module
 }
 
 // Generate builds javascript from the program
 // passed as an argument.
-func Generate(p *ast.Program) (io.Reader, error) {
+func GenerateProgram(p *ast.Program) (io.Reader, error) {
 	gen := &generator{
 		buffer:      &bytes.Buffer{},
 		indentation: "    ",
 	}
 
 	if err := gen.generateProgram(p); err != nil {
+		return nil, err
+	}
+
+	return gen.code(), nil
+}
+
+func GenerateModule(m *ast.Module) (io.Reader, error) {
+	gen := &generator{
+		buffer:      &bytes.Buffer{},
+		indentation: "    ",
+		moduleCache: make(map[string]*ast.Module),
+	}
+	if err := gen.generateModule(m); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +63,7 @@ func ParseAndGenerate(in io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 
-	return Generate(prog)
+	return GenerateProgram(prog)
 }
 
 func (g *generator) indentationString() string {
@@ -114,6 +130,23 @@ func (g *generator) generateProgram(p *ast.Program) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (g *generator) resolveDependencies(modules *[]*ast.Module, m *ast.Module) {
+	if _, ok := g.moduleCache[m.Path]; !ok {
+		*modules = append(*modules, m)
+		g.moduleCache[m.Path] = m
+	}
+	for _, dep := range m.Dependencies {
+		g.resolveDependencies(modules, dep)
+	}
+}
+
+func (g *generator) generateModule(m *ast.Module) error {
+	modules := []*ast.Module{}
+	g.resolveDependencies(&modules, m)
+
 	return nil
 }
 

@@ -396,22 +396,28 @@ func (self *_parser) parseCallExpression(left ast.Expression) (ast.Expression, e
 	}
 
 	// If calling require function with a parameter
-	if module, ok := self.isRequireModule(left, argumentList); ok {
+	if module, ok := self.isRequireModule(left, argumentList); self.parseModular && ok {
 		mPath, ok := self.resolvePath(module)
 		if !ok {
 			return nil, fmt.Errorf("Could not open module '%s'", mPath)
 		}
-		if _, ok := self.modules[mPath]; !ok {
+		if _, ok := self.rootModule.Dependencies[mPath]; !ok {
 			popts := ParserOptions{
 				FileName:          mPath,
 				ModulesLookupDirs: self.modulesLookupDirs,
+				ParseModular:      true,
 			}
-			parsedModule, err := self.parseModule(popts)
+
+			parser, err := NewParser(popts)
 			if err != nil {
 				return nil, err
 			}
-
-			self.modules[mPath] = parsedModule
+			parsedModule, err := parser.ParseModule()
+			if err != nil {
+				return nil, err
+			}
+			self.rootModule.Dependencies[module] = parsedModule
+			self.isModular = true
 		}
 	}
 

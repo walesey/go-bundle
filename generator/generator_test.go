@@ -17,10 +17,8 @@ func TestGenerator(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, testFile := range testFiles {
-		if testFile.IsDir() {
-			continue
-		}
-		if strings.HasSuffix(testFile.Name(), "_output.js") ||
+		if testFile.IsDir() ||
+			strings.HasSuffix(testFile.Name(), "_output.js") ||
 			strings.HasSuffix(testFile.Name(), "~") {
 			continue
 		}
@@ -28,8 +26,6 @@ func TestGenerator(t *testing.T) {
 		testName := testFile.Name()[:len(testFile.Name())-3]
 		outName := "./test/" + testName + "_output.js"
 
-		inFd, err := os.Open("./test/" + testFile.Name())
-		assert.NoError(t, err)
 		expectedFd, err := os.Open(outName)
 		assert.NoError(t, err)
 
@@ -38,16 +34,25 @@ func TestGenerator(t *testing.T) {
 
 		lookup, _ := filepath.Abs("./test/node_modules")
 		popts := parser.ParserOptions{
-			FileName:          "<stdin>",
+			FileName:          filepath.Join("./test", testFile.Name()),
 			ModulesLookupDirs: []string{lookup},
+			ParseModular:      true,
 		}
-		parser, err := parser.NewParser(inFd, popts)
+		parser, err := parser.NewParser(popts)
 		assert.NoError(t, err, testName)
-		prog, err := parser.Parse()
+		module, err := parser.ParseModule()
 		assert.NoError(t, err, testName)
-		generated, err := Generate(prog)
-		assert.NoError(t, err, testName)
-		in.ReadFrom(generated)
+
+		if parser.IsModular() {
+			generated, err := GenerateModule(module)
+			assert.NoError(t, err, testName)
+			in.ReadFrom(generated)
+		} else {
+			generated, err := GenerateProgram(module.Program)
+			assert.NoError(t, err, testName)
+			in.ReadFrom(generated)
+		}
+
 		expected.ReadFrom(expectedFd)
 
 		assert.Equal(t, strings.Trim(expected.String(), " \n"), strings.Trim(in.String(), " \n"), testName)

@@ -20,6 +20,13 @@ type Node interface {
 	Idx1() file.Idx // The index of the first character immediately after the node
 }
 
+type Module struct {
+	Node
+	Path         string
+	Program      *Program
+	Dependencies map[string]*Module
+}
+
 // ========== //
 // Expression //
 // ========== //
