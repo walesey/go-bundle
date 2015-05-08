@@ -314,22 +314,11 @@ func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expres
 }
 
 func (self *_parser) resolveRelativePath(path string) (string, bool) {
-	fd, err := os.Open(path)
-	defer fd.Close()
-	if err != nil {
-		return path, false
+	abs := filepath.Join(filepath.Dir(self.filepath), path)
+	if stat, _ := os.Stat(abs); stat != nil && stat.IsDir() {
+		abs = filepath.Join(abs, "index.js")
 	}
 
-	fInfo, err := fd.Stat()
-	if err != nil {
-		return path, false
-	}
-	filePath := path
-	if fInfo.IsDir() {
-		filePath = filepath.Join(path, "index.js")
-	}
-
-	abs, _ := filepath.Abs(filePath)
 	if _, err := os.Open(abs); err != nil {
 		return path, false
 	}
