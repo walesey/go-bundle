@@ -55,6 +55,12 @@ type _parser struct {
 	modules           map[string]*ast.Program
 }
 
+type Module struct {
+	path         string
+	program      *ast.Program
+	dependencies []*ast.Program
+}
+
 // ParserOptions holds options passed to the parser on initialization
 // currently only used by the function NewParser.
 type ParserOptions struct {
@@ -189,8 +195,7 @@ func (self *_parser) Parse() (*ast.Program, error) {
 
 func (self *_parser) parse() (*ast.Program, error) {
 	self.next()
-	program := self.parseProgram()
-	return program, self.errors.Err()
+	return self.parseProgram()
 }
 
 // rawNext moves pointer to the next token
@@ -211,28 +216,33 @@ func (self *_parser) next() {
 func (self *_parser) optionalSemicolon() {
 }
 
-func (self *_parser) semicolon() {
+func (self *_parser) semicolon() error {
 	if self.token != token.RIGHT_PARENTHESIS && self.token != token.RIGHT_BRACE {
 		if self.implicitSemicolon {
 			self.implicitSemicolon = false
-			return
+			return nil
 		}
 
-		self.expect(token.SEMICOLON)
+		if _, err := self.expect(token.SEMICOLON); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (self *_parser) idxOf(offset int) file.Idx {
 	return file.Idx(self.base + offset)
 }
 
-func (self *_parser) expect(value token.Token) file.Idx {
+func (self *_parser) expect(value token.Token) (file.Idx, error) {
 	idx := self.idx
 	if self.token != value {
-		self.errorUnexpectedToken(self.token)
+		if err := self.errorUnexpectedToken(self.token); err != nil {
+			return file.Idx(-1), err
+		}
 	}
 	self.next()
-	return idx
+	return idx, nil
 }
 
 func lineCount(str string) (int, int) {
@@ -297,7 +307,7 @@ func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expres
 
 // resolvePath resolves a module path based on if it's relative or global.
 func (self *_parser) resolvePath(path string) (string, bool) {
-	if strings.HasPrefix(path, "./") {
+	if strings.HasPrefix(path, ".") {
 		abs, _ := filepath.Abs(filepath.Join(self.filepath, path))
 		if _, err := os.Open(abs); err != nil {
 			return "", false

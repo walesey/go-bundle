@@ -7,17 +7,17 @@ import (
 	"github.com/mamaar/risotto/token"
 )
 
-func (self *_parser) parseIdentifier() *ast.Identifier {
+func (self *_parser) parseIdentifier() (*ast.Identifier, error) {
 	literal := self.literal
 	idx := self.idx
 	self.next()
 	return &ast.Identifier{
 		Name: literal,
 		Idx:  idx,
-	}
+	}, nil
 }
 
-func (self *_parser) parsePrimaryExpression() ast.Expression {
+func (self *_parser) parsePrimaryExpression() (ast.Expression, error) {
 	literal := self.literal
 	idx := self.idx
 
@@ -30,20 +30,20 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 			tkn, strict := token.IsKeyword(literal)
 			if tkn == token.KEYWORD {
 				if !strict {
-					self.error(idx, "Unexpected reserved word")
+					return nil, self.error(idx, "Unexpected reserved word")
 				}
 			}
 		}
 		return &ast.Identifier{
 			Name: literal,
 			Idx:  idx,
-		}
+		}, nil
 	case token.NULL:
 		self.next()
 		return &ast.NullLiteral{
 			Idx:     idx,
 			Literal: literal,
-		}
+		}, nil
 	case token.BOOLEAN:
 		self.next()
 		value := false
@@ -53,36 +53,35 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 		case "false":
 			value = false
 		default:
-			self.error(idx, "Illegal boolean literal")
+			return nil, self.error(idx, "Illegal boolean literal")
 		}
 		return &ast.BooleanLiteral{
 			Idx:     idx,
 			Literal: literal,
 			Value:   value,
-		}
+		}, nil
 	case token.STRING:
 		self.next()
 		value, err := parseStringLiteral(literal[1 : len(literal)-1])
 		if err != nil {
-			self.error(idx, err.Error())
+			return nil, self.error(idx, err.Error())
 		}
 		return &ast.StringLiteral{
 			Idx:     idx,
 			Literal: literal,
 			Value:   value,
-		}
+		}, nil
 	case token.NUMBER:
 		self.next()
 		value, err := parseNumberLiteral(literal)
 		if err != nil {
-			self.error(idx, err.Error())
-			value = 0
+			return nil, self.error(idx, err.Error())
 		}
 		return &ast.NumberLiteral{
 			Idx:     idx,
 			Literal: literal,
 			Value:   value,
-		}
+		}, nil
 	case token.SLASH, token.QUOTIENT_ASSIGN:
 		return self.parseRegExpLiteral()
 	case token.LEFT_BRACE:
@@ -90,25 +89,37 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 	case token.LEFT_BRACKET:
 		return self.parseArrayLiteral()
 	case token.LEFT_PARENTHESIS:
-		self.expect(token.LEFT_PARENTHESIS)
-		expression := self.parseExpression()
-		self.expect(token.RIGHT_PARENTHESIS)
-		return expression
+		_, err := self.expect(token.LEFT_PARENTHESIS)
+		if err != nil {
+			return nil, err
+		}
+		expression, err := self.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		_, err = self.expect(token.RIGHT_PARENTHESIS)
+		if err != nil {
+			return nil, err
+		}
+		return expression, nil
 	case token.THIS:
 		self.next()
 		return &ast.ThisExpression{
 			Idx: idx,
-		}
+		}, nil
 	case token.FUNCTION:
-		return self.parseFunction(false)
+		f, err := self.parseFunction(false)
+		if err != nil {
+			return nil, err
+		}
+		return f, nil
 	}
 
-	self.errorUnexpectedToken(self.token)
-	self.nextStatement()
-	return &ast.BadExpression{From: idx, To: self.idx}
+	err := self.errorUnexpectedToken(self.token)
+	return nil, err
 }
 
-func (self *_parser) parseRegExpLiteral() *ast.RegExpLiteral {
+func (self *_parser) parseRegExpLiteral() (*ast.RegExpLiteral, error) {
 
 	offset := self.chrOffset - 1 // Opening slash already gotten
 	if self.token == token.QUOTIENT_ASSIGN {
@@ -141,15 +152,16 @@ func (self *_parser) parseRegExpLiteral() *ast.RegExpLiteral {
 		Pattern: pattern,
 		Flags:   flags,
 		Value:   value,
-	}
+	}, nil
 }
 
-func (self *_parser) parseVariableDeclaration(declarationList *[]*ast.VariableExpression) ast.Expression {
+func (self *_parser) parseVariableDeclaration(declarationList *[]*ast.VariableExpression) (ast.Expression, error) {
 
 	if self.token != token.IDENTIFIER {
-		idx := self.expect(token.IDENTIFIER)
-		self.nextStatement()
-		return &ast.BadExpression{From: idx, To: self.idx}
+		if _, err := self.expect(token.IDENTIFIER); err != nil {
+			return nil, err
+		}
+
 	}
 
 	literal := self.literal
@@ -166,19 +178,27 @@ func (self *_parser) parseVariableDeclaration(declarationList *[]*ast.VariableEx
 
 	if self.token == token.ASSIGN {
 		self.next()
-		node.Initializer = self.parseAssignmentExpression()
+		init, err := self.parseAssignmentExpression()
+		if err != nil {
+			return nil, err
+		}
+		node.Initializer = init
 	}
 
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseVariableDeclarationList(var_ file.Idx) []ast.Expression {
+func (self *_parser) parseVariableDeclarationList(var_ file.Idx) ([]ast.Expression, error) {
 
 	var declarationList []*ast.VariableExpression // Avoid bad expressions
 	var list []ast.Expression
 
 	for {
-		list = append(list, self.parseVariableDeclaration(&declarationList))
+		decl, err := self.parseVariableDeclaration(&declarationList)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, decl)
 		if self.token != token.COMMA {
 			break
 		}
@@ -190,7 +210,7 @@ func (self *_parser) parseVariableDeclarationList(var_ file.Idx) []ast.Expressio
 		List: declarationList,
 	})
 
-	return list
+	return list, nil
 }
 
 func (self *_parser) parseObjectPropertyKey() (string, string) {
@@ -223,13 +243,16 @@ func (self *_parser) parseObjectPropertyKey() (string, string) {
 	return literal, value
 }
 
-func (self *_parser) parseObjectProperty() ast.Property {
+func (self *_parser) parseObjectProperty() (ast.Property, error) {
 
 	literal, value := self.parseObjectPropertyKey()
 	if literal == "get" && self.token != token.COLON {
 		idx := self.idx
 		_, value := self.parseObjectPropertyKey()
-		parameterList := self.parseFunctionParameterList()
+		parameterList, err := self.parseFunctionParameterList()
+		if err != nil {
+			return ast.Property{}, err
+		}
 
 		node := &ast.FunctionLiteral{
 			Function:      idx,
@@ -240,11 +263,14 @@ func (self *_parser) parseObjectProperty() ast.Property {
 			Key:   value,
 			Kind:  "get",
 			Value: node,
-		}
+		}, nil
 	} else if literal == "set" && self.token != token.COLON {
 		idx := self.idx
 		_, value := self.parseObjectPropertyKey()
-		parameterList := self.parseFunctionParameterList()
+		parameterList, err := self.parseFunctionParameterList()
+		if err != nil {
+			return ast.Property{}, err
+		}
 
 		node := &ast.FunctionLiteral{
 			Function:      idx,
@@ -255,41 +281,59 @@ func (self *_parser) parseObjectProperty() ast.Property {
 			Key:   value,
 			Kind:  "set",
 			Value: node,
-		}
+		}, nil
 	}
 
-	self.expect(token.COLON)
+	if _, err := self.expect(token.COLON); err != nil {
+		return ast.Property{}, err
+	}
 
+	val, err := self.parseAssignmentExpression()
+	if err != nil {
+		return ast.Property{}, err
+	}
 	return ast.Property{
 		Key:   value,
 		Kind:  "value",
-		Value: self.parseAssignmentExpression(),
-	}
+		Value: val,
+	}, nil
 }
 
-func (self *_parser) parseObjectLiteral() ast.Expression {
+func (self *_parser) parseObjectLiteral() (ast.Expression, error) {
 	var value []ast.Property
-	idx0 := self.expect(token.LEFT_BRACE)
+	idx0, err := self.expect(token.LEFT_BRACE)
+	if err != nil {
+		return nil, err
+	}
 	for self.token != token.RIGHT_BRACE && self.token != token.EOF {
-		property := self.parseObjectProperty()
+		property, err := self.parseObjectProperty()
+		if err != nil {
+			return nil, err
+		}
 		value = append(value, property)
 		if self.token == token.COMMA {
 			self.next()
 			continue
 		}
 	}
-	idx1 := self.expect(token.RIGHT_BRACE)
+	idx1, err := self.expect(token.RIGHT_BRACE)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ast.ObjectLiteral{
 		LeftBrace:  idx0,
 		RightBrace: idx1,
 		Value:      value,
-	}
+	}, nil
 }
 
-func (self *_parser) parseArrayLiteral() ast.Expression {
+func (self *_parser) parseArrayLiteral() (ast.Expression, error) {
 
-	idx0 := self.expect(token.LEFT_BRACKET)
+	idx0, err := self.expect(token.LEFT_BRACKET)
+	if err != nil {
+		return nil, err
+	}
 	var value []ast.Expression
 	for self.token != token.RIGHT_BRACKET && self.token != token.EOF {
 		if self.token == token.COMMA {
@@ -297,50 +341,77 @@ func (self *_parser) parseArrayLiteral() ast.Expression {
 			value = append(value, nil)
 			continue
 		}
-		value = append(value, self.parseAssignmentExpression())
+
+		val, err := self.parseAssignmentExpression()
+		if err != nil {
+			return nil, err
+		}
+		value = append(value, val)
 		if self.token != token.RIGHT_BRACKET {
-			self.expect(token.COMMA)
+			if _, err := self.expect(token.COMMA); err != nil {
+				return nil, err
+			}
 		}
 	}
-	idx1 := self.expect(token.RIGHT_BRACKET)
+	idx1, err := self.expect(token.RIGHT_BRACKET)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ast.ArrayLiteral{
 		LeftBracket:  idx0,
 		RightBracket: idx1,
 		Value:        value,
-	}
+	}, nil
 }
 
-func (self *_parser) parseArgumentList() (argumentList []ast.Expression, idx0, idx1 file.Idx) {
-	idx0 = self.expect(token.LEFT_PARENTHESIS)
+func (self *_parser) parseArgumentList() (argumentList []ast.Expression, idx0, idx1 file.Idx, err error) {
+	if idx0, err = self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return
+	}
+
 	if self.token != token.RIGHT_PARENTHESIS {
 		for {
-			argumentList = append(argumentList, self.parseAssignmentExpression())
+			var val ast.Expression
+			var e error
+			if val, e = self.parseAssignmentExpression(); e != nil {
+				err = e
+				return
+			}
+			argumentList = append(argumentList, val)
 			if self.token != token.COMMA {
 				break
 			}
 			self.next()
 		}
 	}
-	idx1 = self.expect(token.RIGHT_PARENTHESIS)
+	idx1, err = self.expect(token.RIGHT_PARENTHESIS)
 	return
 }
 
-func (self *_parser) parseCallExpression(left ast.Expression) ast.Expression {
-	argumentList, idx0, idx1 := self.parseArgumentList()
+func (self *_parser) parseCallExpression(left ast.Expression) (ast.Expression, error) {
+	argumentList, idx0, idx1, err := self.parseArgumentList()
+	if err != nil {
+		return nil, err
+	}
 
 	// If calling require function with a parameter
 	if module, ok := self.isRequireModule(left, argumentList); ok {
 		mPath, ok := self.resolvePath(module)
 		if !ok {
-			panic(fmt.Sprintf("Could not open module '%s'", mPath))
+			return nil, fmt.Errorf("Could not open module '%s'", mPath)
 		}
 		if _, ok := self.modules[mPath]; !ok {
 			popts := ParserOptions{
 				FileName:          mPath,
 				ModulesLookupDirs: self.modulesLookupDirs,
 			}
-			self.modules[mPath], _ = self.parseModule(popts)
+			parsedModule, err := self.parseModule(popts)
+			if err != nil {
+				return nil, err
+			}
+
+			self.modules[mPath] = parsedModule
 		}
 	}
 
@@ -349,19 +420,21 @@ func (self *_parser) parseCallExpression(left ast.Expression) ast.Expression {
 		LeftParenthesis:  idx0,
 		ArgumentList:     argumentList,
 		RightParenthesis: idx1,
-	}
+	}, nil
 }
 
-func (self *_parser) parseDotMember(left ast.Expression) ast.Expression {
-	period := self.expect(token.PERIOD)
+func (self *_parser) parseDotMember(left ast.Expression) (ast.Expression, error) {
+	if _, err := self.expect(token.PERIOD); err != nil {
+		return nil, err
+	}
 
 	literal := self.literal
 	idx := self.idx
 
 	if !matchIdentifier.MatchString(literal) {
-		self.expect(token.IDENTIFIER)
-		self.nextStatement()
-		return &ast.BadExpression{From: period, To: self.idx}
+		if _, err := self.expect(token.IDENTIFIER); err != nil {
+			return nil, err
+		}
 	}
 
 	self.next()
@@ -372,60 +445,93 @@ func (self *_parser) parseDotMember(left ast.Expression) ast.Expression {
 			Idx:  idx,
 			Name: literal,
 		},
-	}
+	}, nil
 }
 
-func (self *_parser) parseBracketMember(left ast.Expression) ast.Expression {
-	idx0 := self.expect(token.LEFT_BRACKET)
-	member := self.parseExpression()
-	idx1 := self.expect(token.RIGHT_BRACKET)
+func (self *_parser) parseBracketMember(left ast.Expression) (ast.Expression, error) {
+	idx0, err := self.expect(token.LEFT_BRACKET)
+	if err != nil {
+		return nil, err
+	}
+
+	member, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	idx1, err := self.expect(token.RIGHT_BRACKET)
+	if err != nil {
+		return nil, err
+	}
 	return &ast.BracketExpression{
 		LeftBracket:  idx0,
 		Left:         left,
 		Member:       member,
 		RightBracket: idx1,
-	}
+	}, nil
 }
 
-func (self *_parser) parseNewExpression() ast.Expression {
-	idx := self.expect(token.NEW)
-	callee := self.parseLeftHandSideExpression()
+func (self *_parser) parseNewExpression() (ast.Expression, error) {
+	idx, err := self.expect(token.NEW)
+	if err != nil {
+		return nil, err
+	}
+	callee, err := self.parseLeftHandSideExpression()
+	if err != nil {
+		return nil, err
+	}
 	node := &ast.NewExpression{
 		New:    idx,
 		Callee: callee,
 	}
 	if self.token == token.LEFT_PARENTHESIS {
-		argumentList, idx0, idx1 := self.parseArgumentList()
+		argumentList, idx0, idx1, err := self.parseArgumentList()
+		if err != nil {
+			return nil, err
+		}
 		node.ArgumentList = argumentList
 		node.LeftParenthesis = idx0
 		node.RightParenthesis = idx1
 	}
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseLeftHandSideExpression() ast.Expression {
+func (self *_parser) parseLeftHandSideExpression() (ast.Expression, error) {
 
 	var left ast.Expression
+	var err error
 	if self.token == token.NEW {
-		left = self.parseNewExpression()
+		left, err = self.parseNewExpression()
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		left = self.parsePrimaryExpression()
+		left, err = self.parsePrimaryExpression()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for {
 		if self.token == token.PERIOD {
-			left = self.parseDotMember(left)
+			left, err = self.parseDotMember(left)
+			if err != nil {
+				return nil, err
+			}
 		} else if self.token == token.LEFT_BRACE {
-			left = self.parseBracketMember(left)
+			left, err = self.parseBracketMember(left)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			break
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseLeftHandSideExpressionAllowCall() ast.Expression {
+func (self *_parser) parseLeftHandSideExpressionAllowCall() (ast.Expression, error) {
 
 	allowIn := self.scope.allowIn
 	self.scope.allowIn = true
@@ -434,29 +540,43 @@ func (self *_parser) parseLeftHandSideExpressionAllowCall() ast.Expression {
 	}()
 
 	var left ast.Expression
+	var err error
 	if self.token == token.NEW {
-		left = self.parseNewExpression()
+		left, err = self.parseNewExpression()
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		left = self.parsePrimaryExpression()
-	}
-
-	for {
-		if self.token == token.PERIOD {
-			left = self.parseDotMember(left)
-		} else if self.token == token.LEFT_BRACKET {
-			left = self.parseBracketMember(left)
-		} else if self.token == token.LEFT_PARENTHESIS {
-			left = self.parseCallExpression(left)
-		} else {
-			break
+		left, err = self.parsePrimaryExpression()
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return left
+	for {
+		var err error
+		if self.token == token.PERIOD {
+			left, err = self.parseDotMember(left)
+		} else if self.token == token.LEFT_BRACKET {
+			left, err = self.parseBracketMember(left)
+		} else if self.token == token.LEFT_PARENTHESIS {
+			left, err = self.parseCallExpression(left)
+		} else {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return left, nil
 }
 
-func (self *_parser) parsePostfixExpression() ast.Expression {
-	operand := self.parseLeftHandSideExpressionAllowCall()
+func (self *_parser) parsePostfixExpression() (ast.Expression, error) {
+	operand, err := self.parseLeftHandSideExpressionAllowCall()
+	if err != nil {
+		return nil, err
+	}
 
 	switch self.token {
 	case token.INCREMENT, token.DECREMENT:
@@ -470,22 +590,20 @@ func (self *_parser) parsePostfixExpression() ast.Expression {
 		switch operand.(type) {
 		case *ast.Identifier, *ast.DotExpression, *ast.BracketExpression:
 		default:
-			self.error(idx, "Invalid left-hand side in assignment")
-			self.nextStatement()
-			return &ast.BadExpression{From: idx, To: self.idx}
+			return nil, self.error(idx, "Invalid left-hand side in assignment")
 		}
 		return &ast.UnaryExpression{
 			Operator: tkn,
 			Idx:      idx,
 			Operand:  operand,
 			Postfix:  true,
-		}
+		}, nil
 	}
 
-	return operand
+	return operand, nil
 }
 
-func (self *_parser) parseUnaryExpression() ast.Expression {
+func (self *_parser) parseUnaryExpression() (ast.Expression, error) {
 
 	switch self.token {
 	case token.PLUS, token.MINUS, token.NOT, token.BITWISE_NOT:
@@ -494,89 +612,118 @@ func (self *_parser) parseUnaryExpression() ast.Expression {
 		tkn := self.token
 		idx := self.idx
 		self.next()
+		val, err := self.parseUnaryExpression()
+		if err != nil {
+			return nil, err
+		}
 		return &ast.UnaryExpression{
 			Operator: tkn,
 			Idx:      idx,
-			Operand:  self.parseUnaryExpression(),
-		}
+			Operand:  val,
+		}, nil
 	case token.INCREMENT, token.DECREMENT:
 		tkn := self.token
 		idx := self.idx
 		self.next()
-		operand := self.parseUnaryExpression()
+		operand, err := self.parseUnaryExpression()
+		if err != nil {
+			return nil, err
+		}
 		switch operand.(type) {
 		case *ast.Identifier, *ast.DotExpression, *ast.BracketExpression:
 		default:
-			self.error(idx, "Invalid left-hand side in assignment")
-			self.nextStatement()
-			return &ast.BadExpression{From: idx, To: self.idx}
+			return nil, self.error(idx, "Invalid left-hand side in assignment")
 		}
 		return &ast.UnaryExpression{
 			Operator: tkn,
 			Idx:      idx,
 			Operand:  operand,
-		}
+		}, nil
 	}
 
 	return self.parsePostfixExpression()
 }
 
-func (self *_parser) parseMultiplicativeExpression() ast.Expression {
+func (self *_parser) parseMultiplicativeExpression() (ast.Expression, error) {
 	next := self.parseUnaryExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.MULTIPLY || self.token == token.SLASH ||
 		self.token == token.REMAINDER {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseAdditiveExpression() ast.Expression {
+func (self *_parser) parseAdditiveExpression() (ast.Expression, error) {
 	next := self.parseMultiplicativeExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.PLUS || self.token == token.MINUS {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseShiftExpression() ast.Expression {
+func (self *_parser) parseShiftExpression() (ast.Expression, error) {
 	next := self.parseAdditiveExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.SHIFT_LEFT || self.token == token.SHIFT_RIGHT ||
 		self.token == token.UNSIGNED_SHIFT_RIGHT {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseRelationalExpression() ast.Expression {
+func (self *_parser) parseRelationalExpression() (ast.Expression, error) {
 	next := self.parseShiftExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	allowIn := self.scope.allowIn
 	self.scope.allowIn = true
@@ -588,159 +735,229 @@ func (self *_parser) parseRelationalExpression() ast.Expression {
 	case token.LESS, token.LESS_OR_EQUAL, token.GREATER, token.GREATER_OR_EQUAL:
 		tkn := self.token
 		self.next()
+		r, err := self.parseRelationalExpression()
+		if err != nil {
+			return nil, err
+		}
 		return &ast.BinaryExpression{
 			Operator:   tkn,
 			Left:       left,
-			Right:      self.parseRelationalExpression(),
+			Right:      r,
 			Comparison: true,
-		}
+		}, nil
 	case token.INSTANCEOF:
 		tkn := self.token
 		self.next()
+		r, err := self.parseRelationalExpression()
+		if err != nil {
+			return nil, err
+		}
 		return &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    self.parseRelationalExpression(),
-		}
+			Right:    r,
+		}, nil
 	case token.IN:
 		if !allowIn {
-			return left
+			return left, nil
 		}
 		tkn := self.token
 		self.next()
+		r, err := self.parseRelationalExpression()
+		if err != nil {
+			return nil, err
+		}
 		return &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    self.parseRelationalExpression(),
-		}
+			Right:    r,
+		}, nil
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseEqualityExpression() ast.Expression {
+func (self *_parser) parseEqualityExpression() (ast.Expression, error) {
 	next := self.parseRelationalExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.EQUAL || self.token == token.NOT_EQUAL ||
 		self.token == token.STRICT_EQUAL || self.token == token.STRICT_NOT_EQUAL {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator:   tkn,
 			Left:       left,
-			Right:      next(),
+			Right:      val,
 			Comparison: true,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseBitwiseAndExpression() ast.Expression {
+func (self *_parser) parseBitwiseAndExpression() (ast.Expression, error) {
 	next := self.parseEqualityExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.AND {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseBitwiseExclusiveOrExpression() ast.Expression {
+func (self *_parser) parseBitwiseExclusiveOrExpression() (ast.Expression, error) {
 	next := self.parseBitwiseAndExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.EXCLUSIVE_OR {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseBitwiseOrExpression() ast.Expression {
+func (self *_parser) parseBitwiseOrExpression() (ast.Expression, error) {
 	next := self.parseBitwiseExclusiveOrExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.OR {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseLogicalAndExpression() ast.Expression {
+func (self *_parser) parseLogicalAndExpression() (ast.Expression, error) {
 	next := self.parseBitwiseOrExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.LOGICAL_AND {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseLogicalOrExpression() ast.Expression {
+func (self *_parser) parseLogicalOrExpression() (ast.Expression, error) {
 	next := self.parseLogicalAndExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	for self.token == token.LOGICAL_OR {
 		tkn := self.token
 		self.next()
+		val, err := next()
+		if err != nil {
+			return nil, err
+		}
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
-			Right:    next(),
+			Right:    val,
 		}
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseConditionlExpression() ast.Expression {
-	left := self.parseLogicalOrExpression()
+func (self *_parser) parseConditionlExpression() (ast.Expression, error) {
+	left, err := self.parseLogicalOrExpression()
+	if err != nil {
+		return nil, err
+	}
 
 	if self.token == token.QUESTION_MARK {
 		self.next()
-		consequent := self.parseAssignmentExpression()
-		self.expect(token.COLON)
+		consequent, err := self.parseAssignmentExpression()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := self.expect(token.COLON); err != nil {
+			return nil, err
+		}
+
+		val, err := self.parseAssignmentExpression()
+		if err != nil {
+			return nil, err
+		}
 		return &ast.ConditionalExpression{
 			Test:       left,
 			Consequent: consequent,
-			Alternate:  self.parseAssignmentExpression(),
-		}
+			Alternate:  val,
+		}, nil
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseAssignmentExpression() ast.Expression {
-	left := self.parseConditionlExpression()
+func (self *_parser) parseAssignmentExpression() (ast.Expression, error) {
+	left, err := self.parseConditionlExpression()
+	if err != nil {
+		return nil, err
+	}
 	var operator token.Token
 	switch self.token {
 	case token.ASSIGN:
@@ -772,28 +989,32 @@ func (self *_parser) parseAssignmentExpression() ast.Expression {
 	}
 
 	if operator != 0 {
-		idx := self.idx
 		self.next()
 		switch left.(type) {
 		case *ast.Identifier, *ast.DotExpression, *ast.BracketExpression:
 		default:
-			self.error(left.Idx0(), "Invalid left-hand side in assignment")
-			self.nextStatement()
-			return &ast.BadExpression{From: idx, To: self.idx}
+			return nil, self.error(left.Idx0(), "Invalid left-hand side in assignment")
+		}
+		val, err := self.parseAssignmentExpression()
+		if err != nil {
+			return nil, err
 		}
 		return &ast.AssignExpression{
 			Left:     left,
 			Operator: operator,
-			Right:    self.parseAssignmentExpression(),
-		}
+			Right:    val,
+		}, nil
 	}
 
-	return left
+	return left, nil
 }
 
-func (self *_parser) parseExpression() ast.Expression {
+func (self *_parser) parseExpression() (ast.Expression, error) {
 	next := self.parseAssignmentExpression
-	left := next()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
 
 	if self.token == token.COMMA {
 		sequence := []ast.Expression{left}
@@ -802,12 +1023,16 @@ func (self *_parser) parseExpression() ast.Expression {
 				break
 			}
 			self.next()
-			sequence = append(sequence, next())
+			val, err := next()
+			if err != nil {
+				return nil, err
+			}
+			sequence = append(sequence, val)
 		}
 		return &ast.SequenceExpression{
 			Sequence: sequence,
-		}
+		}, nil
 	}
 
-	return left
+	return left, nil
 }

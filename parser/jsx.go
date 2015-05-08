@@ -3,10 +3,11 @@ package parser
 import (
 	"bytes"
 	"github.com/mamaar/risotto/ast"
+	"github.com/mamaar/risotto/file"
 	"github.com/mamaar/risotto/token"
 )
 
-func (self *_parser) parseJSX() ast.Expression {
+func (self *_parser) parseJSX() (ast.Expression, error) {
 	switch self.token {
 	case token.LESS:
 		return self.parseJSXElement()
@@ -19,16 +20,30 @@ func (self *_parser) parseJSX() ast.Expression {
 	return self.parseJSXText()
 }
 
-func (self *_parser) parseJSXExpression() *ast.JSXExpression {
-	variable := &ast.JSXExpression{}
-	variable.Pos = self.expect(token.LEFT_BRACE)
-	variable.Identifier = self.parseExpression()
-	self.expect(token.RIGHT_BRACE)
+func (self *_parser) parseJSXExpression() (*ast.JSXExpression, error) {
 
-	return variable
+	pos, err := self.expect(token.LEFT_BRACE)
+	if err != nil {
+		return nil, err
+	}
+	identifier, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	variable := &ast.JSXExpression{
+		Pos:        pos,
+		Identifier: identifier,
+	}
+
+	if _, err := self.expect(token.RIGHT_BRACE); err != nil {
+		return nil, err
+	}
+
+	return variable, nil
 }
 
-func (self *_parser) parseJSXText() *ast.JSXText {
+func (self *_parser) parseJSXText() (*ast.JSXText, error) {
 	text := &ast.JSXText{
 		Pos: self.idx,
 	}
@@ -42,19 +57,27 @@ func (self *_parser) parseJSXText() *ast.JSXText {
 		self.rawNext()
 	}
 	text.Literal = buf.String()
-	return text
+	return text, nil
 }
 
-func (self *_parser) parseJSXBlock() *ast.JSXBlock {
+func (self *_parser) parseJSXBlock() (*ast.JSXBlock, error) {
 	jsx := &ast.JSXBlock{}
 
-	jsx.OpeningElement = self.parseOpeningElement()
+	opening, err := self.parseOpeningElement()
+	if err != nil {
+		return nil, err
+	}
+
+	jsx.OpeningElement = opening
 	if jsx.OpeningElement.SelfClosing {
-		return jsx
+		return jsx, nil
 	}
 
 	for {
-		j := self.parseJSX()
+		j, err := self.parseJSX()
+		if err != nil {
+			return nil, err
+		}
 		if elem, ok := j.(*ast.JSXElement); ok && !elem.IsOpening {
 			jsx.ClosingElement = elem
 			break
@@ -64,10 +87,10 @@ func (self *_parser) parseJSXBlock() *ast.JSXBlock {
 			break
 		}
 	}
-	return jsx
+	return jsx, nil
 }
 
-func (self *_parser) parseJSXElement() ast.Expression {
+func (self *_parser) parseJSXElement() (ast.Expression, error) {
 	self.expect(token.LESS)
 	if self.token == token.SLASH {
 		return self.parseClosingElement()
@@ -75,57 +98,96 @@ func (self *_parser) parseJSXElement() ast.Expression {
 	return self.parseJSXBlock()
 }
 
-func (self *_parser) parseClosingElement() *ast.JSXElement {
-	closing := &ast.JSXElement{IsOpening: false}
-	closing.LeftTag = self.expect(token.SLASH)
+func (self *_parser) parseClosingElement() (*ast.JSXElement, error) {
+	var leftTag file.Idx
+	var name *ast.Identifier
+	var rightTag file.Idx
+	var err error
 
+	leftTag, err = self.expect(token.SLASH)
+	if err != nil {
+		return nil, err
+	}
 	if self.token == token.IDENTIFIER {
-		closing.Name = self.parseIdentifier()
+		name, err = self.parseIdentifier()
 	}
 
-	closing.RightTag = self.expect(token.GREATER)
-	return closing
+	rightTag, err = self.expect(token.GREATER)
+	if err != nil {
+		return nil, err
+	}
+	return &ast.JSXElement{
+		IsOpening: false,
+		LeftTag:   leftTag,
+		RightTag:  rightTag,
+		Name:      name,
+	}, nil
 }
 
-func (self *_parser) parseOpeningElement() *ast.JSXElement {
+func (self *_parser) parseOpeningElement() (*ast.JSXElement, error) {
 	open := &ast.JSXElement{IsOpening: true}
 	open.LeftTag = self.idx
 
 	if self.token == token.IDENTIFIER {
-		open.Name = self.parseIdentifier()
+		name, err := self.parseIdentifier()
+		if err != nil {
+			return nil, err
+		}
+		open.Name = name
 	}
 	for self.token == token.IDENTIFIER {
-		open.PropertyList = append(open.PropertyList, self.parseJSXProperty())
+		prop, err := self.parseJSXProperty()
+		if err != nil {
+			return nil, err
+		}
+		open.PropertyList = append(open.PropertyList, prop)
 	}
 
 	if self.token == token.SLASH {
 		self.next()
-		open.RightTag = self.expect(token.GREATER)
+		rightTag, err := self.expect(token.GREATER)
+		if err != nil {
+			return nil, err
+		}
+		open.RightTag = rightTag
 		open.SelfClosing = true
-		return open
+		return open, nil
 	}
-	open.RightTag = self.expect(token.GREATER)
-	return open
+	rightTag, err := self.expect(token.GREATER)
+	if err != nil {
+		return nil, err
+	}
+	open.RightTag = rightTag
+	return open, nil
 }
 
-func (self *_parser) parseJSXProperty() ast.Property {
+func (self *_parser) parseJSXProperty() (ast.Property, error) {
 	p := ast.Property{}
 
-	p.Key = self.parseIdentifier().Name
-	self.expect(token.ASSIGN)
-	p.Value = self.parseJSXValue()
-
-	return p
+	id, err := self.parseIdentifier()
+	if err != nil {
+		return ast.Property{}, err
+	}
+	p.Key = id.Name
+	if _, err := self.expect(token.ASSIGN); err != nil {
+		return ast.Property{}, err
+	}
+	val, err := self.parseJSXValue()
+	if err != nil {
+		return ast.Property{}, err
+	}
+	p.Value = val
+	return p, nil
 }
 
-func (self *_parser) parseJSXValue() ast.Expression {
+func (self *_parser) parseJSXValue() (ast.Expression, error) {
 	if self.token == token.STRING {
 		t := &ast.JSXText{
 			Pos:     self.idx,
 			Literal: self.literal[1 : len(self.literal)-1],
 		}
 		self.next()
-		return t
+		return t, nil
 	}
 
 	return self.parseJSXExpression()

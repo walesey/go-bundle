@@ -5,32 +5,51 @@ import (
 	"github.com/mamaar/risotto/token"
 )
 
-func (self *_parser) parseBlockStatement() *ast.BlockStatement {
-	node := &ast.BlockStatement{}
-	node.LeftBrace = self.expect(token.LEFT_BRACE)
-	node.List = self.parseStatementList()
-	node.RightBrace = self.expect(token.RIGHT_BRACE)
+func (self *_parser) parseBlockStatement() (*ast.BlockStatement, error) {
+	leftBrace, err := self.expect(token.LEFT_BRACE)
+	if err != nil {
+		return nil, err
+	}
+	list, err := self.parseStatementList()
+	if err != nil {
+		return nil, err
+	}
+	rightBrace, err := self.expect(token.RIGHT_BRACE)
+	if err != nil {
+		return nil, err
+	}
 
-	return node
+	return &ast.BlockStatement{
+		LeftBrace:  leftBrace,
+		List:       list,
+		RightBrace: rightBrace,
+	}, nil
 }
 
-func (self *_parser) parseEmptyStatement() ast.Statement {
-	idx := self.expect(token.SEMICOLON)
-	return &ast.EmptyStatement{Semicolon: idx}
+func (self *_parser) parseEmptyStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.SEMICOLON)
+	if err != nil {
+		return nil, err
+	}
+	return &ast.EmptyStatement{Semicolon: idx}, nil
 }
 
-func (self *_parser) parseStatementList() (list []ast.Statement) {
+func (self *_parser) parseStatementList() (list []ast.Statement, err error) {
 	for self.token != token.RIGHT_BRACE && self.token != token.EOF {
-		list = append(list, self.parseStatement())
+		var stmt ast.Statement
+		stmt, err = self.parseStatement()
+		if err != nil {
+			return
+		}
+		list = append(list, stmt)
 	}
 
 	return
 }
 
-func (self *_parser) parseStatement() ast.Statement {
+func (self *_parser) parseStatement() (ast.Statement, error) {
 	if self.token == token.EOF {
-		self.errorUnexpectedToken(self.token)
-		return &ast.BadStatement{From: self.idx, To: self.idx + 1}
+		return nil, self.errorUnexpectedToken(self.token)
 	}
 
 	switch self.token {
@@ -59,7 +78,7 @@ func (self *_parser) parseStatement() ast.Statement {
 	case token.FUNCTION:
 		self.parseFunction(true)
 		// FIXME
-		return &ast.EmptyStatement{}
+		return &ast.EmptyStatement{}, nil
 	case token.SWITCH:
 		return self.parseSwitchStatement()
 	case token.RETURN:
@@ -70,7 +89,10 @@ func (self *_parser) parseStatement() ast.Statement {
 		return self.parseTryStatement()
 	}
 
-	expression := self.parseExpression()
+	expression, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
 
 	if identifier, isIdentifier := expression.(*ast.Identifier); isIdentifier && self.token == token.COLON {
 		// LabelledStatement
@@ -79,85 +101,125 @@ func (self *_parser) parseStatement() ast.Statement {
 		label := identifier.Name
 		for _, value := range self.scope.labels {
 			if label == value {
-				self.error(identifier.Idx0(), "Label '%s' already exists", label)
+				return nil, self.error(identifier.Idx0(), "Label '%s' already exists", label)
 			}
 		}
 		self.scope.labels = append(self.scope.labels, label) // Push the label
-		statement := self.parseStatement()
+		statement, err := self.parseStatement()
+		if err != nil {
+			return nil, err
+		}
 		self.scope.labels = self.scope.labels[:len(self.scope.labels)-1] // Pop the label
 		return &ast.LabelledStatement{
 			Label:     identifier,
 			Colon:     colon,
 			Statement: statement,
-		}
+		}, nil
 	}
 
 	self.optionalSemicolon()
 
 	return &ast.ExpressionStatement{
 		Expression: expression,
-	}
+	}, nil
 }
 
-func (self *_parser) parseTryStatement() ast.Statement {
+func (self *_parser) parseTryStatement() (ast.Statement, error) {
+	try, err := self.expect(token.TRY)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := self.parseBlockStatement()
+	if err != nil {
+		return nil, err
+	}
 
 	node := &ast.TryStatement{
-		Try:  self.expect(token.TRY),
-		Body: self.parseBlockStatement(),
+		Try:  try,
+		Body: body,
 	}
 
 	if self.token == token.CATCH {
 		catch := self.idx
 		self.next()
-		self.expect(token.LEFT_PARENTHESIS)
+		if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+			return nil, err
+		}
 		if self.token != token.IDENTIFIER {
-			self.expect(token.IDENTIFIER)
-			self.nextStatement()
-			return &ast.BadStatement{From: catch, To: self.idx}
+			if _, err := self.expect(token.IDENTIFIER); err != nil {
+				return nil, err
+			}
 		} else {
-			identifier := self.parseIdentifier()
-			self.expect(token.RIGHT_PARENTHESIS)
+			identifier, err := self.parseIdentifier()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+				return nil, err
+			}
+			stmt, err := self.parseBlockStatement()
+			if err != nil {
+				return nil, err
+			}
 			node.Catch = &ast.CatchStatement{
 				Catch:     catch,
 				Parameter: identifier,
-				Body:      self.parseBlockStatement(),
+				Body:      stmt,
 			}
 		}
 	}
 
 	if self.token == token.FINALLY {
 		self.next()
-		node.Finally = self.parseBlockStatement()
+		finally, err := self.parseBlockStatement()
+		if err != nil {
+			return nil, err
+		}
+		node.Finally = finally
 	}
 
 	if node.Catch == nil && node.Finally == nil {
-		self.error(node.Try, "Missing catch or finally after try")
-		return &ast.BadStatement{From: node.Try, To: node.Body.Idx1()}
+		return nil, self.error(node.Try, "Missing catch or finally after try")
 	}
 
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseFunctionParameterList() *ast.ParameterList {
-	opening := self.expect(token.LEFT_PARENTHESIS)
+func (self *_parser) parseFunctionParameterList() (*ast.ParameterList, error) {
+	opening, err := self.expect(token.LEFT_PARENTHESIS)
+	if err != nil {
+		return nil, err
+	}
 	var list []*ast.Identifier
 	for self.token != token.RIGHT_PARENTHESIS && self.token != token.EOF {
 		if self.token != token.IDENTIFIER {
-			self.expect(token.IDENTIFIER)
+			if _, err := self.expect(token.IDENTIFIER); err != nil {
+				return nil, err
+			}
 		} else {
-			list = append(list, self.parseIdentifier())
+			id, err := self.parseIdentifier()
+			if err != nil {
+				return nil, err
+			}
+			list = append(list, id)
 		}
 		if self.token != token.RIGHT_PARENTHESIS {
-			self.expect(token.COMMA)
+			if _, err := self.expect(token.COMMA); err != nil {
+				return nil, err
+			}
 		}
 	}
-	closing := self.expect(token.RIGHT_PARENTHESIS)
+	closing, err := self.expect(token.RIGHT_PARENTHESIS)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ast.ParameterList{
 		Opening: opening,
 		List:    list,
 		Closing: closing,
-	}
+	}, nil
 }
 
 func (self *_parser) parseParameterList() (list []string) {
@@ -174,15 +236,21 @@ func (self *_parser) parseParameterList() (list []string) {
 	return
 }
 
-func (self *_parser) parseFunction(declaration bool) *ast.FunctionLiteral {
-
+func (self *_parser) parseFunction(declaration bool) (*ast.FunctionLiteral, error) {
+	idx, err := self.expect(token.FUNCTION)
+	if err != nil {
+		return nil, err
+	}
 	node := &ast.FunctionLiteral{
-		Function: self.expect(token.FUNCTION),
+		Function: idx,
 	}
 
 	var name *ast.Identifier
 	if self.token == token.IDENTIFIER {
-		name = self.parseIdentifier()
+		name, err = self.parseIdentifier()
+		if err != nil {
+			return nil, err
+		}
 		if declaration {
 			self.scope.declare(&ast.FunctionDeclaration{
 				Function: node,
@@ -190,17 +258,26 @@ func (self *_parser) parseFunction(declaration bool) *ast.FunctionLiteral {
 		}
 	} else if declaration {
 		// Use expect error handling
-		self.expect(token.IDENTIFIER)
+		if _, err := self.expect(token.IDENTIFIER); err != nil {
+			return nil, err
+		}
 	}
+	params, err := self.parseFunctionParameterList()
+	if err != nil {
+		return nil, err
+	}
+
 	node.Name = name
-	node.ParameterList = self.parseFunctionParameterList()
-	self.parseFunctionBlock(node)
+	node.ParameterList = params
+	if err := self.parseFunctionBlock(node); err != nil {
+		return nil, err
+	}
 	node.Source = self.slice(node.Idx0(), node.Idx1())
 
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseFunctionBlock(node *ast.FunctionLiteral) {
+func (self *_parser) parseFunctionBlock(node *ast.FunctionLiteral) error {
 	{
 		self.openScope()
 		inFunction := self.scope.inFunction
@@ -209,30 +286,40 @@ func (self *_parser) parseFunctionBlock(node *ast.FunctionLiteral) {
 			self.scope.inFunction = inFunction
 			self.closeScope()
 		}()
-		node.Body = self.parseBlockStatement()
+		body, err := self.parseBlockStatement()
+		if err != nil {
+			return err
+		}
+		node.Body = body
 		node.DeclarationList = self.scope.declarationList
 	}
+	return nil
 }
 
-func (self *_parser) parseDebuggerStatement() ast.Statement {
-	idx := self.expect(token.DEBUGGER)
-
-	node := &ast.DebuggerStatement{
-		Debugger: idx,
+func (self *_parser) parseDebuggerStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.DEBUGGER)
+	if err != nil {
+		return nil, err
+	}
+	if err := self.semicolon(); err != nil {
+		return nil, err
 	}
 
-	self.semicolon()
-
-	return node
+	return &ast.DebuggerStatement{
+		Debugger: idx,
+	}, nil
 }
 
-func (self *_parser) parseReturnStatement() ast.Statement {
-	idx := self.expect(token.RETURN)
+func (self *_parser) parseReturnStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.RETURN)
+	if err != nil {
+		return nil, err
+	}
 
 	if !self.scope.inFunction {
-		self.error(idx, "Illegal return statement")
-		self.nextStatement()
-		return &ast.BadStatement{From: idx, To: self.idx}
+		if err := self.error(idx, "Illegal return statement"); err != nil {
+			return nil, err
+		}
 	}
 
 	node := &ast.ReturnStatement{
@@ -240,46 +327,69 @@ func (self *_parser) parseReturnStatement() ast.Statement {
 	}
 
 	if !self.implicitSemicolon && self.token != token.SEMICOLON && self.token != token.RIGHT_BRACE && self.token != token.EOF {
-		node.Argument = self.parseExpression()
+		exp, err := self.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		node.Argument = exp
 	}
 
-	self.semicolon()
+	if err := self.semicolon(); err != nil {
+		return nil, err
+	}
 
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseThrowStatement() ast.Statement {
-	idx := self.expect(token.THROW)
+func (self *_parser) parseThrowStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.THROW)
+	if err != nil {
+		return nil, err
+	}
 
 	if self.implicitSemicolon {
 		if self.chr == -1 { // Hackish
-			self.error(idx, "Unexpected end of input")
-		} else {
-			self.error(idx, "Illegal newline after throw")
+			return nil, self.error(idx, "Unexpected end of input")
 		}
-		self.nextStatement()
-		return &ast.BadStatement{From: idx, To: self.idx}
+		return nil, self.error(idx, "Illegal newline after throw")
 	}
 
-	node := &ast.ThrowStatement{
-		Argument: self.parseExpression(),
+	exp, err := self.parseExpression()
+	if err != nil {
+		return nil, err
 	}
-
-	self.semicolon()
-
-	return node
+	if err := self.semicolon(); err != nil {
+		return nil, err
+	}
+	return &ast.ThrowStatement{
+		Argument: exp,
+	}, nil
 }
 
-func (self *_parser) parseSwitchStatement() ast.Statement {
-	self.expect(token.SWITCH)
-	self.expect(token.LEFT_PARENTHESIS)
+func (self *_parser) parseSwitchStatement() (ast.Statement, error) {
+	if _, err := self.expect(token.SWITCH); err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+
+	discriminant, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.LEFT_BRACE); err != nil {
+		return nil, err
+	}
+
 	node := &ast.SwitchStatement{
-		Discriminant: self.parseExpression(),
+		Discriminant: discriminant,
 		Default:      -1,
 	}
-	self.expect(token.RIGHT_PARENTHESIS)
-
-	self.expect(token.LEFT_BRACE)
 
 	inSwitch := self.scope.inSwitch
 	self.scope.inSwitch = true
@@ -293,33 +403,49 @@ func (self *_parser) parseSwitchStatement() ast.Statement {
 			break
 		}
 
-		clause := self.parseCaseStatement()
+		clause, err := self.parseCaseStatement()
+		if err != nil {
+			return nil, err
+		}
 		if clause.Test == nil {
 			if node.Default != -1 {
-				self.error(clause.Case, "Already saw a default in switch")
+				return nil, self.error(clause.Case, "Already saw a default in switch")
 			}
 			node.Default = index
 		}
 		node.Body = append(node.Body, clause)
 	}
 
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseWithStatement() ast.Statement {
-	self.expect(token.WITH)
-	self.expect(token.LEFT_PARENTHESIS)
-	node := &ast.WithStatement{
-		Object: self.parseExpression(),
+func (self *_parser) parseWithStatement() (ast.Statement, error) {
+	if _, err := self.expect(token.WITH); err != nil {
+		return nil, err
 	}
-	self.expect(token.RIGHT_PARENTHESIS)
+	if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return nil, err
+	}
 
-	node.Body = self.parseStatement()
+	obj, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
 
-	return node
+	body, err := self.parseStatement()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.WithStatement{
+		Object: obj,
+		Body:   body,
+	}, nil
 }
 
-func (self *_parser) parseCaseStatement() *ast.CaseStatement {
+func (self *_parser) parseCaseStatement() (*ast.CaseStatement, error) {
 
 	node := &ast.CaseStatement{
 		Case: self.idx,
@@ -327,10 +453,18 @@ func (self *_parser) parseCaseStatement() *ast.CaseStatement {
 	if self.token == token.DEFAULT {
 		self.next()
 	} else {
-		self.expect(token.CASE)
-		node.Test = self.parseExpression()
+		if _, err := self.expect(token.CASE); err != nil {
+			return nil, err
+		}
+		exp, err := self.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		node.Test = exp
 	}
-	self.expect(token.COLON)
+	if _, err := self.expect(token.COLON); err != nil {
+		return nil, err
+	}
 
 	for {
 		if self.token == token.EOF ||
@@ -339,14 +473,18 @@ func (self *_parser) parseCaseStatement() *ast.CaseStatement {
 			self.token == token.DEFAULT {
 			break
 		}
-		node.Consequent = append(node.Consequent, self.parseStatement())
+		stmt, err := self.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+		node.Consequent = append(node.Consequent, stmt)
 
 	}
 
-	return node
+	return node, nil
 }
 
-func (self *_parser) parseIterationStatement() ast.Statement {
+func (self *_parser) parseIterationStatement() (ast.Statement, error) {
 	inIteration := self.scope.inIteration
 	self.scope.inIteration = true
 	defer func() {
@@ -355,47 +493,76 @@ func (self *_parser) parseIterationStatement() ast.Statement {
 	return self.parseStatement()
 }
 
-func (self *_parser) parseForIn(into ast.Expression) *ast.ForInStatement {
+func (self *_parser) parseForIn(into ast.Expression) (*ast.ForInStatement, error) {
 
 	// Already have consumed "<into> in"
 
-	source := self.parseExpression()
-	self.expect(token.RIGHT_PARENTHESIS)
+	source, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
 
+	iter, err := self.parseIterationStatement()
+	if err != nil {
+		return nil, err
+	}
 	return &ast.ForInStatement{
 		Into:   into,
 		Source: source,
-		Body:   self.parseIterationStatement(),
-	}
+		Body:   iter,
+	}, nil
 }
 
-func (self *_parser) parseFor(initializer ast.Expression) *ast.ForStatement {
+func (self *_parser) parseFor(initializer ast.Expression) (*ast.ForStatement, error) {
 
 	// Already have consumed "<initializer> ;"
 
 	var test, update ast.Expression
+	var err error
 
 	if self.token != token.SEMICOLON {
-		test = self.parseExpression()
+		test, err = self.parseExpression()
+		if err != nil {
+			return nil, err
+		}
 	}
-	self.expect(token.SEMICOLON)
+	if _, err := self.expect(token.SEMICOLON); err != nil {
+		return nil, err
+	}
 
 	if self.token != token.RIGHT_PARENTHESIS {
-		update = self.parseExpression()
+		update, err = self.parseExpression()
+		if err != nil {
+			return nil, err
+		}
 	}
-	self.expect(token.RIGHT_PARENTHESIS)
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
 
+	iter, err := self.parseIterationStatement()
+	if err != nil {
+		return nil, err
+	}
 	return &ast.ForStatement{
 		Initializer: initializer,
 		Test:        test,
 		Update:      update,
-		Body:        self.parseIterationStatement(),
-	}
+		Body:        iter,
+	}, nil
 }
 
-func (self *_parser) parseForOrForInStatement() ast.Statement {
-	idx := self.expect(token.FOR)
-	self.expect(token.LEFT_PARENTHESIS)
+func (self *_parser) parseForOrForInStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.FOR)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return nil, err
+	}
 
 	var left []ast.Expression
 
@@ -405,9 +572,12 @@ func (self *_parser) parseForOrForInStatement() ast.Statement {
 		allowIn := self.scope.allowIn
 		self.scope.allowIn = false
 		if self.token == token.VAR {
-			var_ := self.idx
+			varPos := self.idx
 			self.next()
-			list := self.parseVariableDeclarationList(var_)
+			list, err := self.parseVariableDeclarationList(varPos)
+			if err != nil {
+				return nil, err
+			}
 			if len(list) == 1 && self.token == token.IN {
 				self.next() // in
 				forIn = true
@@ -416,7 +586,11 @@ func (self *_parser) parseForOrForInStatement() ast.Statement {
 				left = list
 			}
 		} else {
-			left = append(left, self.parseExpression())
+			exp, err := self.parseExpression()
+			if err != nil {
+				return nil, err
+			}
+			left = append(left, exp)
 			if self.token == token.IN {
 				self.next()
 				forIn = true
@@ -430,93 +604,161 @@ func (self *_parser) parseForOrForInStatement() ast.Statement {
 		case *ast.Identifier, *ast.DotExpression, *ast.BracketExpression, *ast.VariableExpression:
 			// These are all acceptable
 		default:
-			self.error(idx, "Invalid left-hand side in for-in")
-			self.nextStatement()
-			return &ast.BadStatement{From: idx, To: self.idx}
+			return nil, self.error(idx, "Invalid left-hand side in for-in")
 		}
 		return self.parseForIn(left[0])
 	}
 
-	self.expect(token.SEMICOLON)
+	if _, err := self.expect(token.SEMICOLON); err != nil {
+		return nil, err
+	}
 	return self.parseFor(&ast.SequenceExpression{Sequence: left})
 }
 
-func (self *_parser) parseVariableStatement() *ast.VariableStatement {
+func (self *_parser) parseVariableStatement() (*ast.VariableStatement, error) {
 
-	idx := self.expect(token.VAR)
+	idx, err := self.expect(token.VAR)
+	if err != nil {
+		return nil, err
+	}
 
-	list := self.parseVariableDeclarationList(idx)
-	self.semicolon()
+	list, err := self.parseVariableDeclarationList(idx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := self.semicolon(); err != nil {
+		return nil, err
+	}
 
 	return &ast.VariableStatement{
 		Var:  idx,
 		List: list,
-	}
+	}, nil
 }
 
-func (self *_parser) parseDoWhileStatement() ast.Statement {
+func (self *_parser) parseDoWhileStatement() (ast.Statement, error) {
 	inIteration := self.scope.inIteration
 	self.scope.inIteration = true
 	defer func() {
 		self.scope.inIteration = inIteration
 	}()
 
-	self.expect(token.DO)
-	node := &ast.DoWhileStatement{}
-	if self.token == token.LEFT_BRACE {
-		node.Body = self.parseBlockStatement()
-	} else {
-		node.Body = self.parseStatement()
+	if _, err := self.expect(token.DO); err != nil {
+		return nil, err
 	}
 
-	self.expect(token.WHILE)
-	self.expect(token.LEFT_PARENTHESIS)
-	node.Test = self.parseExpression()
-	self.expect(token.RIGHT_PARENTHESIS)
+	var body ast.Statement
+	var err error
+	if self.token == token.LEFT_BRACE {
+		body, err = self.parseBlockStatement()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		body, err = self.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return node
+	if _, err := self.expect(token.WHILE); err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+	var test ast.Expression
+	test, err = self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+
+	return &ast.DoWhileStatement{
+		Body: body,
+		Test: test,
+	}, nil
 }
 
-func (self *_parser) parseWhileStatement() ast.Statement {
-	self.expect(token.WHILE)
-	self.expect(token.LEFT_PARENTHESIS)
-	node := &ast.WhileStatement{
-		Test: self.parseExpression(),
+func (self *_parser) parseWhileStatement() (ast.Statement, error) {
+	if _, err := self.expect(token.WHILE); err != nil {
+		return nil, err
 	}
-	self.expect(token.RIGHT_PARENTHESIS)
-	node.Body = self.parseIterationStatement()
+	if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return nil, err
+	}
 
-	return node
+	test, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+
+	body, err := self.parseIterationStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.WhileStatement{
+		Test: test,
+		Body: body,
+	}, nil
 }
 
-func (self *_parser) parseIfStatement() ast.Statement {
-	self.expect(token.IF)
-	self.expect(token.LEFT_PARENTHESIS)
-	node := &ast.IfStatement{
-		Test: self.parseExpression(),
+func (self *_parser) parseIfStatement() (ast.Statement, error) {
+	if _, err := self.expect(token.IF); err != nil {
+		return nil, err
 	}
-	self.expect(token.RIGHT_PARENTHESIS)
-
+	if _, err := self.expect(token.LEFT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+	exp, err := self.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := self.expect(token.RIGHT_PARENTHESIS); err != nil {
+		return nil, err
+	}
+	var consequent ast.Statement
 	if self.token == token.LEFT_BRACE {
-		node.Consequent = self.parseBlockStatement()
+		consequent, err = self.parseBlockStatement()
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		node.Consequent = self.parseStatement()
+		consequent, err = self.parseStatement()
+		if err != nil {
+			return nil, err
+		}
 	}
 
+	var alternate ast.Statement
 	if self.token == token.ELSE {
 		self.next()
-		node.Alternate = self.parseStatement()
+		alternate, err = self.parseStatement()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return node
+	return &ast.IfStatement{
+		Test:       exp,
+		Consequent: consequent,
+		Alternate:  alternate,
+	}, nil
 }
 
-func (self *_parser) parseSourceElement() ast.Statement {
+func (self *_parser) parseSourceElement() (ast.Statement, error) {
 
 	return self.parseStatement()
 }
 
-func (self *_parser) parseSourceElements() []ast.Statement {
+func (self *_parser) parseSourceElements() ([]ast.Statement, error) {
 	body := []ast.Statement(nil)
 
 	for {
@@ -524,28 +766,43 @@ func (self *_parser) parseSourceElements() []ast.Statement {
 			break
 		}
 
-		body = append(body, self.parseSourceElement())
+		src, err := self.parseSourceElement()
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, src)
 	}
 
 	for self.token != token.EOF {
-		body = append(body, self.parseSourceElement())
+		src, err := self.parseSourceElement()
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, src)
 	}
 
-	return body
+	return body, nil
 }
 
-func (self *_parser) parseProgram() *ast.Program {
+func (self *_parser) parseProgram() (*ast.Program, error) {
 	self.openScope()
 	defer self.closeScope()
+	srcElems, err := self.parseSourceElements()
+	if err != nil {
+		return nil, err
+	}
 	return &ast.Program{
-		Body:            self.parseSourceElements(),
+		Body:            srcElems,
 		DeclarationList: self.scope.declarationList,
 		File:            self.file,
-	}
+	}, nil
 }
 
-func (self *_parser) parseBreakStatement() ast.Statement {
-	idx := self.expect(token.BREAK)
+func (self *_parser) parseBreakStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.BREAK)
+	if err != nil {
+		return nil, err
+	}
 	semicolon := self.implicitSemicolon
 	if self.token == token.SEMICOLON {
 		semicolon = true
@@ -560,33 +817,40 @@ func (self *_parser) parseBreakStatement() ast.Statement {
 		return &ast.BranchStatement{
 			Idx:   idx,
 			Token: token.BREAK,
-		}
+		}, nil
 	}
 
 	if self.token == token.IDENTIFIER {
-		identifier := self.parseIdentifier()
-		if !self.scope.hasLabel(identifier.Name) {
-			self.error(idx, "Undefined label '%s'", identifier.Name)
-			return &ast.BadStatement{From: idx, To: identifier.Idx1()}
+		identifier, err := self.parseIdentifier()
+		if err != nil {
+			return nil, err
 		}
-		self.semicolon()
+		if !self.scope.hasLabel(identifier.Name) {
+			return nil, self.error(idx, "Undefined label '%s'", identifier.Name)
+		}
+		if err := self.semicolon(); err != nil {
+			return nil, err
+		}
 		return &ast.BranchStatement{
 			Idx:   idx,
 			Token: token.BREAK,
 			Label: identifier,
-		}
+		}, nil
 	}
 
-	self.expect(token.IDENTIFIER)
+	if _, err := self.expect(token.IDENTIFIER); err != nil {
+		return nil, err
+	}
 
 illegal:
-	self.error(idx, "Illegal break statement")
-	self.nextStatement()
-	return &ast.BadStatement{From: idx, To: self.idx}
+	return nil, self.error(idx, "Illegal break statement")
 }
 
-func (self *_parser) parseContinueStatement() ast.Statement {
-	idx := self.expect(token.CONTINUE)
+func (self *_parser) parseContinueStatement() (ast.Statement, error) {
+	idx, err := self.expect(token.CONTINUE)
+	if err != nil {
+		return nil, err
+	}
 	semicolon := self.implicitSemicolon
 	if self.token == token.SEMICOLON {
 		semicolon = true
@@ -601,32 +865,36 @@ func (self *_parser) parseContinueStatement() ast.Statement {
 		return &ast.BranchStatement{
 			Idx:   idx,
 			Token: token.CONTINUE,
-		}
+		}, nil
 	}
 
 	if self.token == token.IDENTIFIER {
-		identifier := self.parseIdentifier()
+		identifier, err := self.parseIdentifier()
+		if err != nil {
+			return nil, err
+		}
 		if !self.scope.hasLabel(identifier.Name) {
-			self.error(idx, "Undefined label '%s'", identifier.Name)
-			return &ast.BadStatement{From: idx, To: identifier.Idx1()}
+			return nil, self.error(idx, "Undefined label '%s'", identifier.Name)
 		}
 		if !self.scope.inIteration {
 			goto illegal
 		}
-		self.semicolon()
+		if err := self.semicolon(); err != nil {
+			return nil, err
+		}
 		return &ast.BranchStatement{
 			Idx:   idx,
 			Token: token.CONTINUE,
 			Label: identifier,
-		}
+		}, nil
 	}
 
-	self.expect(token.IDENTIFIER)
+	if _, err := self.expect(token.IDENTIFIER); err != nil {
+		return nil, err
+	}
 
 illegal:
-	self.error(idx, "Illegal continue statement")
-	self.nextStatement()
-	return &ast.BadStatement{From: idx, To: self.idx}
+	return nil, self.error(idx, "Illegal continue statement")
 }
 
 // Find the next statement after an error (recover)
