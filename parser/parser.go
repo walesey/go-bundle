@@ -315,6 +315,7 @@ func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expres
 
 func (self *_parser) resolveRelativePath(path string) (string, bool) {
 	fd, err := os.Open(path)
+	defer fd.Close()
 	if err != nil {
 		return path, false
 	}
