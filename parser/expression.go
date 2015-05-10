@@ -399,7 +399,7 @@ func (self *_parser) parseCallExpression(left ast.Expression) (ast.Expression, e
 	if module, ok := self.isRequireModule(left, argumentList); self.parseModular && ok {
 		mPath, ok := self.resolvePath(module)
 		if !ok {
-			return nil, fmt.Errorf("Could not open module '%s'", mPath)
+			return nil, fmt.Errorf("Could not open module '%s' from '%s'", mPath, self.filepath)
 		}
 		if _, ok := self.rootModule.Dependencies[mPath]; !ok {
 			popts := ParserOptions{

@@ -99,7 +99,7 @@ func NewParser(options ParserOptions) (*_parser, error) {
 
 	lookupDirs := []string{}
 	for _, lookupDir := range options.ModulesLookupDirs {
-		if _, err := os.Open(lookupDir); err != nil {
+		if stat, _ := os.Stat(lookupDir); stat == nil {
 			continue
 		}
 		lookupDirs = append(lookupDirs, lookupDir)
@@ -107,8 +107,10 @@ func NewParser(options ParserOptions) (*_parser, error) {
 
 	fd, err := os.Open(filePath)
 	if err != nil {
+		fd.Close()
 		return nil, err
 	}
+	defer fd.Close()
 
 	buf := bytes.Buffer{}
 	buf.ReadFrom(fd)
@@ -315,13 +317,31 @@ func (self *_parser) isRequireModule(c ast.Expression, argumentList []ast.Expres
 
 func (self *_parser) resolveRelativePath(path string) (string, bool) {
 	abs := filepath.Join(filepath.Dir(self.filepath), path)
-	if stat, _ := os.Stat(abs); stat != nil && stat.IsDir() {
-		abs = filepath.Join(abs, "index.js")
+	if len(filepath.Ext(abs)) == 0 {
+		if s, _ := os.Stat(abs); s != nil && s.IsDir() {
+			indexPath := filepath.Join(abs, "index.js")
+			namePath := filepath.Join(abs, filepath.Base(path)+".js")
+			indexStat, _ := os.Stat(indexPath)
+			nameStat, _ := os.Stat(namePath)
+
+			if indexStat != nil {
+				return indexPath, true
+			}
+			if nameStat != nil {
+				return namePath, true
+			}
+
+		}
+	}
+	if filepath.Ext(abs) != ".js" {
+		abs += ".js"
 	}
 
-	if _, err := os.Open(abs); err != nil {
+	fd, err := os.Open(abs)
+	if err != nil {
 		return path, false
 	}
+	fd.Close()
 	return abs, true
 }
 
@@ -335,11 +355,23 @@ func (self *_parser) resolvePath(path string) (string, bool) {
 		abs, _ := filepath.Abs(filepath.Join(d, path))
 		fd, err := os.Open(abs)
 		if err != nil {
+			fd.Close()
 			continue
 		}
 		defer fd.Close()
 		if fInfo, err := fd.Stat(); err == nil && fInfo.IsDir() {
-			abs = filepath.Join(abs, "index.js")
+			indexPath := filepath.Join(abs, "index.js")
+			namePath := filepath.Join(abs, path+".js")
+
+			indexStat, _ := os.Stat(indexPath)
+			nameStat, _ := os.Stat(namePath)
+			if indexStat != nil {
+				return indexPath, true
+			}
+			if nameStat != nil {
+				return namePath, true
+			}
+			continue
 		}
 
 		return abs, true
