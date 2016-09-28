@@ -193,22 +193,6 @@ func (self *_parser) next() {
 	}
 }
 
-func (self *_parser) optionalSemicolon() {
-	if self.token == token.SEMICOLON {
-		self.next()
-		return
-	}
-
-	if self.implicitSemicolon {
-		self.implicitSemicolon = false
-		return
-	}
-
-	if self.token != token.EOF && self.token != token.RIGHT_BRACE {
-		self.expect(token.SEMICOLON)
-	}
-}
-
 func (self *_parser) semicolon() {
 	if self.token != token.RIGHT_PARENTHESIS && self.token != token.RIGHT_BRACE {
 		if self.implicitSemicolon {

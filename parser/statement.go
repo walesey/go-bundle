@@ -136,8 +136,6 @@ func (self *_parser) parseStatement() ast.Statement {
 		return exp
 	}
 
-	self.optionalSemicolon()
-
 	statement := &ast.ExpressionStatement{
 		Expression: expression,
 	}

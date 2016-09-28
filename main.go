@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mamaar/risotto/generator"
+	"github.com/walesey/go-bundle/generator"
 )
 
 func main() {
