@@ -1,0 +1,10 @@
+language: go
+
+go:
+    - 1.7.1
+
+notifications:
+    email:
+        recipients:
+            - joshua.wales@gmail.com
+        on_failure: always
