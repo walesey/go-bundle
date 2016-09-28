@@ -118,6 +118,7 @@ func isLineTerminator(chr rune) bool {
 }
 
 func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
+
 	self.implicitSemicolon = false
 
 	// Initialization of data on first run
@@ -214,6 +215,7 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 			case '\r', '\n', '\u2028', '\u2029':
 				self.insertSemicolon = false
 				self.implicitSemicolon = true
+				self.comments.AtLineBreak()
 				continue
 			case ':':
 				tkn = token.COLON
@@ -257,9 +259,19 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 				tkn = self.switch2(token.MULTIPLY, token.MULTIPLY_ASSIGN)
 			case '/':
 				if self.chr == '/' {
+					if self.mode&StoreComments != 0 {
+						literal := string(self.readSingleLineComment())
+						self.comments.AddComment(ast.NewComment(literal, self.idx))
+						continue
+					}
 					self.skipSingleLineComment()
 					continue
 				} else if self.chr == '*' {
+					if self.mode&StoreComments != 0 {
+						literal = string(self.readMultiLineComment())
+						self.comments.AddComment(ast.NewComment(literal, self.idx))
+						continue
+					}
 					self.skipMultiLineComment()
 					continue
 				} else {
@@ -446,10 +458,12 @@ func (self *_parser) isWhiteSpace() bool {
 		return true
 	case '\r':
 		if self._peek() == '\n' {
+			self.comments.AtLineBreak()
 			return true
 		}
 		return false
 	case '\u2028', '\u2029', '\n':
+		self.comments.AtLineBreak()
 		return true
 	}
 	if self.chr >= utf8.RuneSelf {

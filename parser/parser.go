@@ -1,7 +1,41 @@
+/*
+Package parser implements a parser for JavaScript.
+
+    import (
+        "github.com/robertkrimen/otto/parser"
+    )
+
+Parse and return an AST
+
+    filename := "" // A filename is optional
+    src := `
+        // Sample xyzzy example
+        (function(){
+            if (3.14159 > 0) {
+                console.log("Hello, World.");
+                return;
+            }
+
+            var xyzzy = NaN;
+            console.log("Nothing happens.");
+            return xyzzy;
+        })();
+    `
+
+    // Parse some JavaScript, yielding a *ast.Program and/or an ErrorList
+    program, err := parser.ParseFile(nil, filename, src, 0)
+
+Warning
+
+The parser and AST interfaces are still works-in-progress (particularly where
+node types are concerned) and may change in the future.
+
+*/
 package parser
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -9,6 +43,7 @@ import (
 	"github.com/mamaar/risotto/ast"
 	"github.com/mamaar/risotto/file"
 	"github.com/mamaar/risotto/token"
+	"gopkg.in/sourcemap.v1"
 )
 
 // A Mode value is a set of flags (or 0). They control optional parser functionality.
@@ -16,12 +51,13 @@ type Mode uint
 
 const (
 	IgnoreRegExpErrors Mode = 1 << iota // Ignore RegExp compatibility errors (allow backtracking)
+	StoreComments                       // Store the comments from source to the comments map
 )
 
 type _parser struct {
-	str      string
-	length   int
-	base     int
+	str    string
+	length int
+	base   int
 
 	chr       rune // The current character
 	chrOffset int  // The offset of current character
@@ -46,6 +82,12 @@ type _parser struct {
 	mode Mode
 
 	file *file.File
+
+	comments *ast.Comments
+}
+
+type Parser interface {
+	Scan() (tkn token.Token, literal string, idx file.Idx)
 }
 
 func _newParser(filename, src string, base int) *_parser {
@@ -55,10 +97,12 @@ func _newParser(filename, src string, base int) *_parser {
 		length: len(src),
 		base:   base,
 		file:   file.NewFile(filename, src, base),
+		comments: ast.NewComments(),
 	}
 }
 
-func newParser(filename, src string) *_parser {
+// Returns a new Parser.
+func NewParser(filename, src string) Parser {
 	return _newParser(filename, src, 1)
 }
 
@@ -113,8 +157,36 @@ func ParseFile(fileSet *file.FileSet, filename string, src interface{}, mode Mod
 
 		parser := _newParser(filename, str, base)
 		parser.mode = mode
-		return parser.parse()
+		program, err := parser.parse()
+		program.Comments = parser.comments.CommentMap
+
+		return program, err
 	}
+}
+
+// ParseFunction parses a given parameter list and body as a function and returns the
+// corresponding ast.FunctionLiteral node.
+//
+// The parameter list, if any, should be a comma-separated list of identifiers.
+//
+func ParseFunction(parameterList, body string) (*ast.FunctionLiteral, error) {
+
+	src := "(function(" + parameterList + ") {\n" + body + "\n})"
+
+	parser := _newParser("", src, 1)
+	program, err := parser.parse()
+	if err != nil {
+		return nil, err
+	}
+
+	return program.Body[0].(*ast.ExpressionStatement).Expression.(*ast.FunctionLiteral), nil
+}
+
+// Scan reads a single token from the source at the current offset, increments the offset and
+// returns the token.Token token, a string literal representing the value of the token (if applicable)
+// and it's current file.Idx index.
+func (self *_parser) Scan() (tkn token.Token, literal string, idx file.Idx) {
+	return self.scan()
 }
 
 func (self *_parser) slice(idx0, idx1 file.Idx) string {
@@ -130,6 +202,14 @@ func (self *_parser) slice(idx0, idx1 file.Idx) string {
 func (self *_parser) parse() (*ast.Program, error) {
 	self.next()
 	program := self.parseProgram()
+	if false {
+		self.errors.Sort()
+	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.CommentMap.AddComments(program, self.comments.FetchAll(), ast.TRAILING)
+	}
+
 	return program, self.errors.Err()
 }
 
@@ -149,6 +229,19 @@ func (self *_parser) next() {
 }
 
 func (self *_parser) optionalSemicolon() {
+	if self.token == token.SEMICOLON {
+		self.next()
+		return
+	}
+
+	if self.implicitSemicolon {
+		self.implicitSemicolon = false
+		return
+	}
+
+	if self.token != token.EOF && self.token != token.RIGHT_BRACE {
+		self.expect(token.SEMICOLON)
+	}
 }
 
 func (self *_parser) semicolon() {
