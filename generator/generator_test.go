@@ -2,11 +2,12 @@ package generator
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerator(t *testing.T) {
@@ -28,11 +29,12 @@ func TestGenerator(t *testing.T) {
 		expectedFd, err := os.Open(outName)
 		assert.NoError(t, err)
 
-		in := &bytes.Buffer{}
-		expected := &bytes.Buffer{}
+		in := new(bytes.Buffer)
+		expected := new(bytes.Buffer)
 
 		generated, err := ParseAndGenerate(inFd)
 		assert.NoError(t, err, testName)
+		assert.NotNil(t, generated)
 		in.ReadFrom(generated)
 		expected.ReadFrom(expectedFd)
 

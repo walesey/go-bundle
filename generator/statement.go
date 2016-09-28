@@ -2,8 +2,9 @@ package generator
 
 import (
 	"fmt"
-	"github.com/mamaar/risotto/ast"
 	"reflect"
+
+	"github.com/walesey/go-bundle/ast"
 )
 
 func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration) error {
@@ -41,6 +42,8 @@ func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration
 		return g.whileStatement(stmt.(*ast.WhileStatement))
 	case *ast.DoWhileStatement:
 		return g.doWhileStatement(stmt.(*ast.DoWhileStatement))
+	case *ast.FunctionStatement:
+		return g.functionStatement(stmt.(*ast.FunctionStatement))
 	default:
 		return fmt.Errorf("Statement is not defined <%v>", reflect.TypeOf(stmt))
 	}
@@ -240,5 +243,9 @@ func (g *generator) variableStatement(v *ast.VariableStatement) error {
 			g.write(";")
 		}
 	}
+	return nil
+}
+
+func (g *generator) functionStatement(f *ast.FunctionStatement) error {
 	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/mamaar/risotto/file"
-	"github.com/mamaar/risotto/token"
+	"github.com/walesey/go-bundle/file"
+	"github.com/walesey/go-bundle/token"
 )
 
 const (

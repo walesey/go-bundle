@@ -2,7 +2,8 @@ package ast
 
 import (
 	"fmt"
-	"github.com/robertkrimen/otto/file"
+
+	"github.com/walesey/go-bundle/file"
 )
 
 // CommentPosition determines where the comment is in a given context

@@ -10,8 +10,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/mamaar/risotto/file"
-	"github.com/mamaar/risotto/token"
+	"github.com/walesey/go-bundle/ast"
+	"github.com/walesey/go-bundle/file"
+	"github.com/walesey/go-bundle/token"
 )
 
 type _chr struct {
@@ -423,6 +424,39 @@ func (self *_parser) read() {
 	}
 }
 
+func (self *_parser) readSingleLineComment() (result []rune) {
+	for self.chr != -1 {
+		self.read()
+		if isLineTerminator(self.chr) {
+			return
+		}
+		result = append(result, self.chr)
+	}
+
+	// Get rid of the trailing -1
+	result = result[:len(result)-1]
+
+	return
+}
+
+func (self *_parser) readMultiLineComment() (result []rune) {
+	self.read()
+	for self.chr >= 0 {
+		chr := self.chr
+		self.read()
+		if chr == '*' && self.chr == '/' {
+			self.read()
+			return
+		}
+
+		result = append(result, chr)
+	}
+
+	self.errorUnexpected(0, self.chr)
+
+	return
+}
+
 func (self *_parser) skipSingleLineComment() {
 	for self.chr != -1 {
 		self.read()
@@ -458,12 +492,10 @@ func (self *_parser) isWhiteSpace() bool {
 		return true
 	case '\r':
 		if self._peek() == '\n' {
-			self.comments.AtLineBreak()
 			return true
 		}
 		return false
 	case '\u2028', '\u2029', '\n':
-		self.comments.AtLineBreak()
 		return true
 	}
 	if self.chr >= utf8.RuneSelf {

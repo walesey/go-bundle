@@ -2,8 +2,8 @@ package parser
 
 import (
 	"bytes"
-	"github.com/mamaar/risotto/ast"
-	"github.com/mamaar/risotto/token"
+	"github.com/walesey/go-bundle/ast"
+	"github.com/walesey/go-bundle/token"
 )
 
 func (self *_parser) parseJSX() ast.Expression {

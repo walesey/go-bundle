@@ -3,12 +3,13 @@ package generator
 import (
 	"bytes"
 	"fmt"
-	"github.com/mamaar/risotto/ast"
-	"github.com/mamaar/risotto/parser"
 	"io"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/walesey/go-bundle/ast"
+	"github.com/walesey/go-bundle/parser"
 )
 
 type generator struct {

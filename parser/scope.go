@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/mamaar/risotto/ast"
+	"github.com/walesey/go-bundle/ast"
 )
 
 type _scope struct {

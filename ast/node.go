@@ -10,8 +10,8 @@ node types are concerned) and may change in the future.
 package ast
 
 import (
-	"github.com/mamaar/risotto/file"
-	"github.com/mamaar/risotto/token"
+	"github.com/walesey/go-bundle/file"
+	"github.com/walesey/go-bundle/token"
 )
 
 // All nodes implement the Node interface.

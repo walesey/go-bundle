@@ -1,49 +1,14 @@
-/*
-Package parser implements a parser for JavaScript.
-
-    import (
-        "github.com/robertkrimen/otto/parser"
-    )
-
-Parse and return an AST
-
-    filename := "" // A filename is optional
-    src := `
-        // Sample xyzzy example
-        (function(){
-            if (3.14159 > 0) {
-                console.log("Hello, World.");
-                return;
-            }
-
-            var xyzzy = NaN;
-            console.log("Nothing happens.");
-            return xyzzy;
-        })();
-    `
-
-    // Parse some JavaScript, yielding a *ast.Program and/or an ErrorList
-    program, err := parser.ParseFile(nil, filename, src, 0)
-
-Warning
-
-The parser and AST interfaces are still works-in-progress (particularly where
-node types are concerned) and may change in the future.
-
-*/
 package parser
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"io"
 	"io/ioutil"
 
-	"github.com/mamaar/risotto/ast"
-	"github.com/mamaar/risotto/file"
-	"github.com/mamaar/risotto/token"
-	"gopkg.in/sourcemap.v1"
+	"github.com/walesey/go-bundle/ast"
+	"github.com/walesey/go-bundle/file"
+	"github.com/walesey/go-bundle/token"
 )
 
 // A Mode value is a set of flags (or 0). They control optional parser functionality.
@@ -92,11 +57,11 @@ type Parser interface {
 
 func _newParser(filename, src string, base int) *_parser {
 	return &_parser{
-		str:    src,
-		offset: -1,
-		length: len(src),
-		base:   base,
-		file:   file.NewFile(filename, src, base),
+		str:      src,
+		offset:   -1,
+		length:   len(src),
+		base:     base,
+		file:     file.NewFile(filename, src, base),
 		comments: ast.NewComments(),
 	}
 }

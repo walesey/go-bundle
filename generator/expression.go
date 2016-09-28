@@ -2,10 +2,11 @@ package generator
 
 import (
 	"fmt"
-	"github.com/mamaar/risotto/ast"
-	"github.com/mamaar/risotto/token"
 	"reflect"
 	"strings"
+
+	"github.com/walesey/go-bundle/ast"
+	"github.com/walesey/go-bundle/token"
 )
 
 func (g *generator) generateExpression(exp ast.Expression) error {
@@ -199,7 +200,7 @@ func (g *generator) dotExpression(d *ast.DotExpression) error {
 
 	g.write(".")
 
-	return g.identifier(&d.Identifier)
+	return g.identifier(d.Identifier)
 }
 
 func (g *generator) callExpression(c *ast.CallExpression) error {

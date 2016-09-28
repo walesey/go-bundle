@@ -1,9 +1,9 @@
 package parser
 
 import (
-	"github.com/mamaar/risotto/ast"
-	"github.com/mamaar/risotto/file"
-	"github.com/mamaar/risotto/token"
+	"github.com/walesey/go-bundle/ast"
+	"github.com/walesey/go-bundle/file"
+	"github.com/walesey/go-bundle/token"
 )
 
 func (self *_parser) parseIdentifier() *ast.Identifier {

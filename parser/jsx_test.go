@@ -1,9 +1,10 @@
 package parser
 
 import (
-	"github.com/mamaar/risotto/ast"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/walesey/go-bundle/ast"
 )
 
 var validJSX = []string{
@@ -14,7 +15,7 @@ var validJSX = []string{
 }
 
 func p(jsx string) (*ast.Program, error) {
-	p := newParser("", jsx)
+	p := _newParser("", jsx, 1)
 	return p.parse()
 }
 

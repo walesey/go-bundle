@@ -4,14 +4,15 @@ import (
 	"testing"
 
 	"fmt"
-	"github.com/mamaar/risotto/file"
-	"github.com/mamaar/risotto/token"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/walesey/go-bundle/file"
+	"github.com/walesey/go-bundle/token"
 )
 
 func TestLexer(t *testing.T) {
 	setup := func(src string) *_parser {
-		parser := newParser("", src)
+		parser := _newParser("", src, 1)
 		return parser
 	}
 
