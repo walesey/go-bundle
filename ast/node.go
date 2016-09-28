@@ -358,8 +358,9 @@ type (
 	}
 
 	VariableStatement struct {
-		Var  file.Idx
-		List []Expression
+		Var      file.Idx
+		List     []Expression
+		Constant bool
 	}
 
 	WhileStatement struct {

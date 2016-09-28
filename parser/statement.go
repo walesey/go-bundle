@@ -82,8 +82,8 @@ func (self *_parser) parseStatement() ast.Statement {
 		return self.parseDebuggerStatement()
 	case token.WITH:
 		return self.parseWithStatement()
-	case token.VAR:
-		return self.parseVariableStatement()
+	case token.VAR, token.CONST, token.LET:
+		return self.parseVariableStatement(self.token == token.CONST)
 	case token.FUNCTION:
 		return self.parseFunctionStatement()
 	case token.SWITCH:
@@ -644,18 +644,20 @@ func (self *_parser) parseForOrForInStatement() ast.Statement {
 	return forstatement
 }
 
-func (self *_parser) parseVariableStatement() *ast.VariableStatement {
+func (self *_parser) parseVariableStatement(constant bool) *ast.VariableStatement {
 	var comments []*ast.Comment
 	if self.mode&StoreComments != 0 {
 		comments = self.comments.FetchAll()
 	}
-	idx := self.expect(token.VAR)
+	idx := self.idx
+	self.next()
 
 	list := self.parseVariableDeclarationList(idx)
 
 	statement := &ast.VariableStatement{
-		Var:  idx,
-		List: list,
+		Var:      idx,
+		List:     list,
+		Constant: constant,
 	}
 	if self.mode&StoreComments != 0 {
 		self.comments.CommentMap.AddComments(statement, comments, ast.LEADING)

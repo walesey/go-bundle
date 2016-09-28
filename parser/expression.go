@@ -38,7 +38,7 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 			tkn, strict := token.IsKeyword(literal)
 			if tkn == token.KEYWORD {
 				if !strict {
-					self.error(idx, "Unexpected reserved word")
+					self.error(idx, "Unexpected reserved word: %v", literal)
 				}
 			}
 		}

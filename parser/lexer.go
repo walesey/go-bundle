@@ -294,6 +294,10 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 					self.read()
 					tkn = token.STRICT_EQUAL
 				}
+				if tkn == token.ASSIGN && self.chr == '>' {
+					self.read()
+					tkn = token.ARROW
+				}
 			case '!':
 				tkn = self.switch2(token.NOT, token.NOT_EQUAL)
 				if tkn == token.NOT_EQUAL && self.chr == '=' {

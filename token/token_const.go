@@ -110,6 +110,17 @@ const (
 	DEBUGGER
 
 	INSTANCEOF
+
+	ARROW // =>
+	CONST
+	LET
+	CLASS
+	EXPORT
+	EXTENDS
+	IMPORT
+	REQUIRE
+	SUPER
+
 	lastKeyword
 )
 
@@ -201,6 +212,16 @@ var token2string = [...]string{
 	CONTINUE:                    "continue",
 	DEBUGGER:                    "debugger",
 	INSTANCEOF:                  "instanceof",
+
+	ARROW:   "=>",
+	CONST:   "const",
+	LET:     "let",
+	CLASS:   "class",
+	EXPORT:  "export",
+	EXTENDS: "extends",
+	IMPORT:  "import",
+	REQUIRE: "require",
+	SUPER:   "super",
 }
 
 var keywordTable = map[string]_keyword{
@@ -282,31 +303,33 @@ var keywordTable = map[string]_keyword{
 	"instanceof": _keyword{
 		token: INSTANCEOF,
 	},
+
 	"const": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
+		token: KEYWORD,
 	},
 	"class": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
-	},
-	"enum": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
+		token: KEYWORD,
 	},
 	"export": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
+		token: KEYWORD,
 	},
 	"extends": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
+		token: KEYWORD,
 	},
 	"import": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
+		token: KEYWORD,
 	},
 	"super": _keyword{
+		token: KEYWORD,
+	},
+	"let": _keyword{
+		token: KEYWORD,
+	},
+	"require": _keyword{
+		token: KEYWORD,
+	},
+
+	"enum": _keyword{
 		token:         KEYWORD,
 		futureKeyword: true,
 	},
@@ -316,11 +339,6 @@ var keywordTable = map[string]_keyword{
 		strict:        true,
 	},
 	"interface": _keyword{
-		token:         KEYWORD,
-		futureKeyword: true,
-		strict:        true,
-	},
-	"let": _keyword{
 		token:         KEYWORD,
 		futureKeyword: true,
 		strict:        true,

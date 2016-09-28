@@ -37,8 +37,9 @@ func TestGenerator(t *testing.T) {
 		assert.NotNil(t, generated)
 		in.ReadFrom(generated)
 		expected.ReadFrom(expectedFd)
+		expectedStr := strings.Replace(expected.String(), "\r", "", -1)
 
-		assert.Equal(t, strings.Trim(expected.String(), " \n"), strings.Trim(in.String(), " \n"), testName)
+		assert.Equal(t, strings.Trim(expectedStr, " \n"), strings.Trim(in.String(), " \n"), testName)
 	}
 
 }
