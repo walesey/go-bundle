@@ -99,6 +99,20 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 		return self.parseArrayLiteral()
 	case token.LEFT_PARENTHESIS:
 		self.expect(token.LEFT_PARENTHESIS)
+		if self.token == token.RIGHT_PARENTHESIS {
+			closing := self.expect(token.RIGHT_PARENTHESIS)
+			emptyParams := &ast.ParameterList{
+				Opening: idx,
+				List:    []*ast.Identifier{},
+				Closing: closing,
+			}
+			return self.parseArrowFunction(emptyParams)
+		} else if self.token == token.IDENTIFIER {
+			chr := self.chrAt(self.offset + 1)
+			if chr.value == ',' {
+				//TODO
+			}
+		}
 		expression := self.parseExpression()
 		if self.mode&StoreComments != 0 {
 			self.comments.Unset()

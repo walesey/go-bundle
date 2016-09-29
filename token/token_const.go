@@ -111,7 +111,8 @@ const (
 
 	INSTANCEOF
 
-	ARROW // =>
+	ARROW    // =>
+	VARIADAC // ...
 	CONST
 	LET
 	CLASS
@@ -213,15 +214,16 @@ var token2string = [...]string{
 	DEBUGGER:                    "debugger",
 	INSTANCEOF:                  "instanceof",
 
-	ARROW:   "=>",
-	CONST:   "const",
-	LET:     "let",
-	CLASS:   "class",
-	EXPORT:  "export",
-	EXTENDS: "extends",
-	IMPORT:  "import",
-	REQUIRE: "require",
-	SUPER:   "super",
+	ARROW:    "=>",
+	VARIADAC: "...",
+	CONST:    "const",
+	LET:      "let",
+	CLASS:    "class",
+	EXPORT:   "export",
+	EXTENDS:  "extends",
+	IMPORT:   "import",
+	REQUIRE:  "require",
+	SUPER:    "super",
 }
 
 var keywordTable = map[string]_keyword{
@@ -305,28 +307,28 @@ var keywordTable = map[string]_keyword{
 	},
 
 	"const": _keyword{
-		token: KEYWORD,
+		token: CONST,
 	},
 	"class": _keyword{
-		token: KEYWORD,
+		token: CLASS,
 	},
 	"export": _keyword{
-		token: KEYWORD,
+		token: EXPORT,
 	},
 	"extends": _keyword{
-		token: KEYWORD,
+		token: EXTENDS,
 	},
 	"import": _keyword{
-		token: KEYWORD,
+		token: IMPORT,
 	},
 	"super": _keyword{
-		token: KEYWORD,
+		token: SUPER,
 	},
 	"let": _keyword{
-		token: KEYWORD,
+		token: LET,
 	},
 	"require": _keyword{
-		token: KEYWORD,
+		token: REQUIRE,
 	},
 
 	"enum": _keyword{
