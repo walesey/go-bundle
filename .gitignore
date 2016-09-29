@@ -1,1 +1,5 @@
 *~
+.vscode/
+debug
+go-bundle
+go-bundle.exe

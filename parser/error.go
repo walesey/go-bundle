@@ -109,7 +109,6 @@ func (self *_parser) errorUnexpectedToken(tkn token.Token) error {
 	case token.IDENTIFIER:
 		return self.error(self.idx, "Unexpected identifier: %v", self.literal)
 	case token.KEYWORD:
-		panic("")
 		// TODO Might be a future reserved word
 		return self.error(self.idx, "Unexpected reserved word: %v", self.literal)
 	case token.NUMBER:
