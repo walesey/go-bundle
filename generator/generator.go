@@ -30,7 +30,7 @@ type generator struct {
 func Generate(p *ast.Program) (io.Reader, error) {
 	gen := &generator{
 		buffer:      &bytes.Buffer{},
-		indentation: "    ",
+		indentation: "  ",
 	}
 
 	if err := gen.generateProgram(p); err != nil {
@@ -43,7 +43,7 @@ func Generate(p *ast.Program) (io.Reader, error) {
 // ParseAndGenerate takes an io.Reader to be parsed and
 // generate javascript code.
 func ParseAndGenerate(in io.Reader) (io.Reader, error) {
-	prog, err := parser.ParseFile(nil, "<input>", in, parser.IgnoreRegExpErrors)
+	prog, err := parser.ParseFile(nil, "<input>", in, parser.IgnoreRegExpErrors&parser.StoreComments)
 	if err != nil {
 		return nil, err
 	}

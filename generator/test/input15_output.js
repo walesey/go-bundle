@@ -1,3 +1,3 @@
 React.createElement("div", {
-    prop: name
+  prop: name
 }, "Hello, ", name);

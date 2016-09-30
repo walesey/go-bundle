@@ -156,7 +156,7 @@ func (g *generator) throwStatement(t *ast.ThrowStatement) error {
 
 func (g *generator) ifStatement(i *ast.IfStatement) error {
 	if !g.isElseStatement {
-		g.write("\n")
+		g.writeLine("")
 	}
 	g.write("if (")
 	g.descentExpression()
@@ -185,7 +185,7 @@ func (g *generator) emptyStatement(r *ast.EmptyStatement) error {
 }
 
 func (g *generator) returnStatement(r *ast.ReturnStatement) error {
-	g.writeIndentation("return ")
+	g.writeLine("return ")
 	g.descentExpression()
 	if err := g.generateExpression(r.Argument); err != nil {
 		return err
@@ -196,7 +196,7 @@ func (g *generator) returnStatement(r *ast.ReturnStatement) error {
 }
 
 func (g *generator) blockStatement(b *ast.BlockStatement, dcls []ast.Declaration) error {
-	g.write("{\n")
+	g.write("{")
 	g.indentLevel++
 
 	for _, stmt := range b.List {

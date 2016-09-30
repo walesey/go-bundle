@@ -23,19 +23,19 @@ func TestLexer(t *testing.T) {
 			if len(test) > 0 {
 				expTkn := test[0].(token.Token)
 				assert.Equal(t, expTkn, tkn,
-					fmt.Sprintf("Token %v != %v", expTkn, tkn))
+					fmt.Sprintf("Token %v != %v (%v)", expTkn, tkn, src))
 				test = test[1:]
 			}
 			if len(test) > 0 {
 				expLit := test[0].(string)
 				assert.Equal(t, expLit, literal,
-					fmt.Sprintf("Literal %v != %v", expLit, literal))
+					fmt.Sprintf("Literal %v != %v (%v)", expLit, literal, src))
 				test = test[1:]
 			}
 			if len(test) > 0 {
 				expIdx := file.Idx(test[0].(int))
 				assert.Equal(t, expIdx, idx,
-					fmt.Sprintf("Idx %v != %v", expIdx, idx))
+					fmt.Sprintf("Idx %v != %v (%v)", expIdx, idx, src))
 
 				test = test[1:]
 			}
@@ -233,7 +233,7 @@ Second line \
 		token.WHITESPACE, " ", 7,
 		token.VAR, "var", 8,
 		token.WHITESPACE, " ", 11,
-		token.KEYWORD, "class", 12,
+		token.CLASS, "class", 12,
 		token.EOF, "", 17,
 	)
 
@@ -452,5 +452,21 @@ Second line \
 		token.IDENTIFIER, "c", 6,
 		token.WHITESPACE, "\n", 7,
 		token.EOF, "", 8)
+
+	test(`var lineFn = () => "test";`,
+		token.VAR, "var", 1,
+		token.WHITESPACE, " ", 4,
+		token.IDENTIFIER, "lineFn", 5,
+		token.WHITESPACE, " ", 11,
+		token.ASSIGN, "", 12,
+		token.WHITESPACE, " ", 13,
+		token.LEFT_PARENTHESIS, "", 14,
+		token.RIGHT_PARENTHESIS, "", 15,
+		token.WHITESPACE, " ", 16,
+		token.ARROW, "", 17,
+		token.WHITESPACE, " ", 19,
+		token.STRING, `"test"`, 20,
+		token.SEMICOLON, "", 26,
+		token.EOF, "", 27)
 
 }

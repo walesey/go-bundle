@@ -33,7 +33,7 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 	case token.LESS:
 		return self.parseJSXElement()
 	case token.IDENTIFIER:
-		self.next()
+		ident := self.parseIdentifier()
 		if len(literal) > 1 {
 			tkn, strict := token.IsKeyword(literal)
 			if tkn == token.KEYWORD {
@@ -41,6 +41,14 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 					self.error(idx, "Unexpected reserved word: %v", literal)
 				}
 			}
+		}
+		if self.token == token.ARROW {
+			params := &ast.ParameterList{
+				Opening: idx,
+				List:    []*ast.Identifier{ident},
+				Closing: self.idx,
+			}
+			return self.parseArrowFunction(params)
 		}
 		return &ast.Identifier{
 			Name: literal,
@@ -98,7 +106,41 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 	case token.LEFT_BRACKET:
 		return self.parseArrayLiteral()
 	case token.LEFT_PARENTHESIS:
+		//arrow function args
+		closed := false
+		for i := 1; ; { // peek ahead for the arrow token
+			chr := self.chrAt(self.offset + i)
+			if closed {
+				if chr.value == '=' {
+					chr := self.chrAt(self.offset + i + 1)
+					if chr.value == '>' {
+						params := self.parseFunctionParameterList()
+						return self.parseArrowFunction(params)
+					}
+				} else if chr.value != ' ' {
+					break
+				}
+			} else if chr.value == '(' {
+				break
+			} else if chr.value == ')' {
+				closed = true
+			}
+			i += chr.width
+		}
+		// expression in parenthesis
 		self.expect(token.LEFT_PARENTHESIS)
+		if self.token == token.RIGHT_PARENTHESIS {
+			closing := self.expect(token.RIGHT_PARENTHESIS)
+			emptyParams := &ast.ParameterList{
+				Opening: idx,
+				List:    []*ast.Identifier{},
+				Closing: closing,
+			}
+			return self.parseArrowFunction(emptyParams)
+		} else if self.token == token.IDENTIFIER {
+
+		}
+
 		expression := self.parseExpression()
 		if self.mode&StoreComments != 0 {
 			self.comments.Unset()

@@ -1,3 +1,3 @@
 React.createElement("li", {
-    key: (index + itemText)
+  key: (index + itemText)
 }, itemText);
