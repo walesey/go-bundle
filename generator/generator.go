@@ -23,14 +23,26 @@ type generator struct {
 	isInInitializer    bool
 	isCalleeExpression bool
 	isElseStatement    bool
+
+	bundle *_bundle
 }
 
-// Generate builds javascript from the program
-// passed as an argument.
-func Generate(p *ast.Program) (io.Reader, error) {
+// Load takes an io.Reader to be parsed and
+// generate javascript code.
+func Load(in io.Reader) (io.Reader, error) {
+	prog, err := parser.ParseFile(nil, "<input>", in, parser.IgnoreRegExpErrors&parser.StoreComments)
+	if err != nil {
+		return nil, err
+	}
+
+	return generate(prog, newBundle())
+}
+
+func generate(p *ast.Program, bundle *_bundle) (io.Reader, error) {
 	gen := &generator{
 		buffer:      &bytes.Buffer{},
 		indentation: "  ",
+		bundle:      bundle,
 	}
 
 	if err := gen.generateProgram(p); err != nil {
@@ -38,17 +50,6 @@ func Generate(p *ast.Program) (io.Reader, error) {
 	}
 
 	return gen.code(), nil
-}
-
-// ParseAndGenerate takes an io.Reader to be parsed and
-// generate javascript code.
-func ParseAndGenerate(in io.Reader) (io.Reader, error) {
-	prog, err := parser.ParseFile(nil, "<input>", in, parser.IgnoreRegExpErrors&parser.StoreComments)
-	if err != nil {
-		return nil, err
-	}
-
-	return Generate(prog)
 }
 
 func (g *generator) indentationString() string {

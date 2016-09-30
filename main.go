@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/walesey/go-bundle/cssLoader"
 	"github.com/walesey/go-bundle/generator"
 )
 
@@ -15,19 +16,16 @@ func main() {
 		entry = os.Args[1]
 	}
 
-	// b.AddLoaders(".css", cssLoader.New(cssLoader.Config{
-	// 	ClassNaming: "[name]-[hash]",
-	// 	Outfile:     "./styles.css",
-	// }))
+	styleLoader := cssLoader.New(cssLoader.Config{
+		ClassNaming: "[name]-[hash]",
+		Outfile:     "./styles.css",
+	})
 
-	fd, err := os.Open(entry)
-	if err != nil {
-		fmt.Println(err)
-		return
+	loaders := map[string][]generator.Loader{
+		".css": []generator.Loader{styleLoader},
 	}
-	defer fd.Close()
 
-	gen, err := generator.ParseAndGenerate(fd)
+	gen, err := generator.Bundle(entry, loaders)
 	if err != nil {
 		fmt.Println(err)
 		return
