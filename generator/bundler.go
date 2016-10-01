@@ -34,7 +34,7 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 	bundle := newBundle()
 	bundle.loaders = loaders
 
-	entryModule, err := resolveModule(fmt.Sprint("./", entry), "./", bundle)
+	entryModule, err := bundle.resolveModule(fmt.Sprint("./", entry), "./")
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +58,11 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 	return out, err
 }
 
-func resolveModule(importPath, currentPath string, bundle *_bundle) (string, error) {
+func (bundle *_bundle) resolveModule(importPath, currentPath string) (string, error) {
 	//use relative path
 	if strings.HasPrefix(importPath, "./") {
 		path := filepath.Join(filepath.Dir(currentPath), importPath)
-		return loadModule(path, bundle)
+		return bundle.loadModule(path)
 	}
 
 	//look in node_modules
@@ -81,10 +81,10 @@ func resolveModule(importPath, currentPath string, bundle *_bundle) (string, err
 	}
 
 	path := filepath.Join(wd, "node_modules", importPath, main)
-	return loadModule(path, bundle)
+	return bundle.loadModule(path)
 }
 
-func loadModule(path string, bundle *_bundle) (string, error) {
+func (bundle *_bundle) loadModule(path string) (string, error) {
 	// check the file extention
 	ext := filepath.Ext(path)
 	if len(ext) == 0 {
@@ -130,7 +130,7 @@ func loadModule(path string, bundle *_bundle) (string, error) {
 	}
 
 	// non js files do no not need to be parsed.
-	if ext != ".js" {
+	if filepath.Ext(absPath) != ".js" {
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, src)
 		mod.data = buf.Bytes()
@@ -143,7 +143,7 @@ func loadModule(path string, bundle *_bundle) (string, error) {
 		return moduleName, err
 	}
 
-	gen, err := generate(prog, bundle)
+	gen, err := generate(prog, path, bundle)
 	if err != nil {
 		return moduleName, err
 	}

@@ -24,7 +24,8 @@ type generator struct {
 	isCalleeExpression bool
 	isElseStatement    bool
 
-	bundle *_bundle
+	filePath string
+	bundle   *_bundle
 }
 
 // Load takes an io.Reader to be parsed and
@@ -35,13 +36,14 @@ func Load(in io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 
-	return generate(prog, newBundle())
+	return generate(prog, "<input>", nil)
 }
 
-func generate(p *ast.Program, bundle *_bundle) (io.Reader, error) {
+func generate(p *ast.Program, filePath string, bundle *_bundle) (io.Reader, error) {
 	gen := &generator{
 		buffer:      &bytes.Buffer{},
 		indentation: "  ",
+		filePath:    filePath,
 		bundle:      bundle,
 	}
 

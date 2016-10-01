@@ -81,12 +81,21 @@ func (self *_parser) parseExportStatement() ast.Statement {
 		}
 	}
 
-	if self.token != token.VAR && self.token != token.LET && self.token != token.CONST {
+	if self.token == token.FUNCTION {
+		return &ast.ExportStatement{
+			Export: export,
+			Statement: &ast.FunctionStatement{
+				Function: self.parseFunction(false),
+			},
+		}
+	}
+
+	if self.token != token.VAR && self.token != token.CONST && self.token != token.LET {
 		self.errorUnexpectedToken(self.token)
 	}
 
 	return &ast.ExportStatement{
-		Export: export,
-		Var:    self.parseVariableStatement(),
+		Export:    export,
+		Statement: self.parseVariableStatement(),
 	}
 }

@@ -383,8 +383,8 @@ type (
 	}
 
 	ExportStatement struct {
-		Export file.Idx
-		Var    *VariableStatement
+		Export    file.Idx
+		Statement Statement
 	}
 
 	ExportDefaultStatement struct {
@@ -590,5 +590,5 @@ func (self *VariableStatement) Idx1() file.Idx      { return self.List[len(self.
 func (self *WhileStatement) Idx1() file.Idx         { return self.Body.Idx1() }
 func (self *WithStatement) Idx1() file.Idx          { return self.Body.Idx1() }
 func (self *ImportStatement) Idx1() file.Idx        { return self.Path.Idx1() }
-func (self *ExportStatement) Idx1() file.Idx        { return self.Var.Idx1() }
+func (self *ExportStatement) Idx1() file.Idx        { return self.Statement.Idx1() }
 func (self *ExportDefaultStatement) Idx1() file.Idx { return self.Argument.Idx1() }

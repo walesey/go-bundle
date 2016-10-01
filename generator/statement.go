@@ -257,15 +257,24 @@ func (g *generator) functionStatement(f *ast.FunctionStatement) error {
 }
 
 func (g *generator) importStatement(i *ast.ImportStatement) error {
+	modulePath := i.Path.Value
+	var err error
+	if g.bundle != nil {
+		if modulePath, err = g.bundle.resolveModule(i.Path.Value, g.filePath); err != nil {
+			fmt.Println("Error Resolving Module: ", i.Path.Value)
+			return err
+		}
+	}
+
 	if i.Default != nil {
 		g.writeLine("var ")
 		g.write(i.Default.Name)
 		g.write(" = require('")
-		g.write(i.Path.Value)
+		g.write(modulePath)
 		g.write("').default")
 		g.write(" || ")
 		g.write("require('")
-		g.write(i.Path.Value)
+		g.write(modulePath)
 		g.write("');")
 	}
 
@@ -273,7 +282,7 @@ func (g *generator) importStatement(i *ast.ImportStatement) error {
 		g.writeLine("var ")
 		g.write(ident.Name)
 		g.write(" = require('")
-		g.write(i.Path.Value)
+		g.write(modulePath)
 		g.write("').")
 		g.write(ident.Name)
 		g.write(";")
@@ -283,14 +292,35 @@ func (g *generator) importStatement(i *ast.ImportStatement) error {
 }
 
 func (g *generator) exportStatement(e *ast.ExportStatement) error {
-	for _, vexp := range e.Var.List {
+	switch e.Statement.(type) {
+	case *ast.VariableStatement:
+		varStmt := e.Statement.(*ast.VariableStatement)
+		for _, exp := range varStmt.List {
+			g.writeLine("module.exports.")
+			if err := g.generateExpression(exp); err != nil {
+				return err
+			}
+		}
+	case *ast.FunctionStatement:
+		funcStmt := e.Statement.(*ast.FunctionStatement)
 		g.writeLine("module.exports.")
-		if err := g.generateExpression(vexp); err != nil {
+		g.write(funcStmt.Function.Name.Name)
+		g.write(" = (function ")
+		g.isCalleeExpression = false
+		if err := g.parameterList(funcStmt.Function.ParameterList); err != nil {
 			return err
 		}
 
-		g.write(";")
+		g.write(" ")
+		if err := g.generateStatement(funcStmt.Function.Body, funcStmt.Function.DeclarationList); err != nil {
+			return err
+		}
+
+		g.write(")")
+	default:
+		return fmt.Errorf("invalid export Statement <%v>", reflect.TypeOf(e.Statement))
 	}
+	g.write(";")
 
 	return nil
 }

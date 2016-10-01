@@ -325,9 +325,6 @@ func (g *generator) functionLiteral(f *ast.FunctionLiteral) error {
 		defer g.write(")")
 	} else {
 		g.writeLine("function ")
-	}
-
-	if !isAnonymous {
 		if err := g.generateExpression(f.Name); err != nil {
 			return err
 		}
