@@ -83,7 +83,7 @@ func (self *_parser) parseStatement() ast.Statement {
 	case token.WITH:
 		return self.parseWithStatement()
 	case token.VAR, token.CONST, token.LET:
-		return self.parseVariableStatement(self.token == token.CONST)
+		return self.parseVariableStatement()
 	case token.FUNCTION:
 		return self.parseFunctionStatement()
 	case token.SWITCH:
@@ -94,6 +94,10 @@ func (self *_parser) parseStatement() ast.Statement {
 		return self.parseThrowStatement()
 	case token.TRY:
 		return self.parseTryStatement()
+	case token.IMPORT:
+		return self.parseImportStatement()
+	case token.EXPORT:
+		return self.parseExportStatement()
 	}
 
 	var comments []*ast.Comment
@@ -630,11 +634,12 @@ func (self *_parser) parseForOrForInStatement() ast.Statement {
 	return forstatement
 }
 
-func (self *_parser) parseVariableStatement(constant bool) *ast.VariableStatement {
+func (self *_parser) parseVariableStatement() *ast.VariableStatement {
 	var comments []*ast.Comment
 	if self.mode&StoreComments != 0 {
 		comments = self.comments.FetchAll()
 	}
+	constant := self.token == token.CONST
 	idx := self.idx
 	self.next()
 

@@ -374,31 +374,51 @@ type (
 		Object Expression
 		Body   Statement
 	}
+
+	ImportStatement struct {
+		Import  file.Idx
+		List    []*Identifier
+		Default *Identifier
+		Path    *StringLiteral
+	}
+
+	ExportStatement struct {
+		Export file.Idx
+		Var    *VariableStatement
+	}
+
+	ExportDefaultStatement struct {
+		Export   file.Idx
+		Argument Expression
+	}
 )
 
 // _statementNode
 
-func (*BadStatement) _statementNode()        {}
-func (*BlockStatement) _statementNode()      {}
-func (*BranchStatement) _statementNode()     {}
-func (*CaseStatement) _statementNode()       {}
-func (*CatchStatement) _statementNode()      {}
-func (*DebuggerStatement) _statementNode()   {}
-func (*DoWhileStatement) _statementNode()    {}
-func (*EmptyStatement) _statementNode()      {}
-func (*ExpressionStatement) _statementNode() {}
-func (*ForInStatement) _statementNode()      {}
-func (*ForStatement) _statementNode()        {}
-func (*FunctionStatement) _statementNode()   {}
-func (*IfStatement) _statementNode()         {}
-func (*LabelledStatement) _statementNode()   {}
-func (*ReturnStatement) _statementNode()     {}
-func (*SwitchStatement) _statementNode()     {}
-func (*ThrowStatement) _statementNode()      {}
-func (*TryStatement) _statementNode()        {}
-func (*VariableStatement) _statementNode()   {}
-func (*WhileStatement) _statementNode()      {}
-func (*WithStatement) _statementNode()       {}
+func (*BadStatement) _statementNode()           {}
+func (*BlockStatement) _statementNode()         {}
+func (*BranchStatement) _statementNode()        {}
+func (*CaseStatement) _statementNode()          {}
+func (*CatchStatement) _statementNode()         {}
+func (*DebuggerStatement) _statementNode()      {}
+func (*DoWhileStatement) _statementNode()       {}
+func (*EmptyStatement) _statementNode()         {}
+func (*ExpressionStatement) _statementNode()    {}
+func (*ForInStatement) _statementNode()         {}
+func (*ForStatement) _statementNode()           {}
+func (*FunctionStatement) _statementNode()      {}
+func (*IfStatement) _statementNode()            {}
+func (*LabelledStatement) _statementNode()      {}
+func (*ReturnStatement) _statementNode()        {}
+func (*SwitchStatement) _statementNode()        {}
+func (*ThrowStatement) _statementNode()         {}
+func (*TryStatement) _statementNode()           {}
+func (*VariableStatement) _statementNode()      {}
+func (*WhileStatement) _statementNode()         {}
+func (*WithStatement) _statementNode()          {}
+func (*ImportStatement) _statementNode()        {}
+func (*ExportStatement) _statementNode()        {}
+func (*ExportDefaultStatement) _statementNode() {}
 
 // =========== //
 // Declaration //
@@ -470,28 +490,31 @@ func (self *ThisExpression) Idx0() file.Idx        { return self.Idx }
 func (self *UnaryExpression) Idx0() file.Idx       { return self.Idx }
 func (self *VariableExpression) Idx0() file.Idx    { return self.Idx }
 
-func (self *BadStatement) Idx0() file.Idx        { return self.From }
-func (self *BlockStatement) Idx0() file.Idx      { return self.LeftBrace }
-func (self *BranchStatement) Idx0() file.Idx     { return self.Idx }
-func (self *CaseStatement) Idx0() file.Idx       { return self.Case }
-func (self *CatchStatement) Idx0() file.Idx      { return self.Catch }
-func (self *DebuggerStatement) Idx0() file.Idx   { return self.Debugger }
-func (self *DoWhileStatement) Idx0() file.Idx    { return self.Do }
-func (self *EmptyStatement) Idx0() file.Idx      { return self.Semicolon }
-func (self *ExpressionStatement) Idx0() file.Idx { return self.Expression.Idx0() }
-func (self *ForInStatement) Idx0() file.Idx      { return self.For }
-func (self *ForStatement) Idx0() file.Idx        { return self.For }
-func (self *FunctionStatement) Idx0() file.Idx   { return self.Function.Idx0() }
-func (self *IfStatement) Idx0() file.Idx         { return self.If }
-func (self *LabelledStatement) Idx0() file.Idx   { return self.Label.Idx0() }
-func (self *Program) Idx0() file.Idx             { return self.Body[0].Idx0() }
-func (self *ReturnStatement) Idx0() file.Idx     { return self.Return }
-func (self *SwitchStatement) Idx0() file.Idx     { return self.Switch }
-func (self *ThrowStatement) Idx0() file.Idx      { return self.Throw }
-func (self *TryStatement) Idx0() file.Idx        { return self.Try }
-func (self *VariableStatement) Idx0() file.Idx   { return self.Var }
-func (self *WhileStatement) Idx0() file.Idx      { return self.While }
-func (self *WithStatement) Idx0() file.Idx       { return self.With }
+func (self *BadStatement) Idx0() file.Idx           { return self.From }
+func (self *BlockStatement) Idx0() file.Idx         { return self.LeftBrace }
+func (self *BranchStatement) Idx0() file.Idx        { return self.Idx }
+func (self *CaseStatement) Idx0() file.Idx          { return self.Case }
+func (self *CatchStatement) Idx0() file.Idx         { return self.Catch }
+func (self *DebuggerStatement) Idx0() file.Idx      { return self.Debugger }
+func (self *DoWhileStatement) Idx0() file.Idx       { return self.Do }
+func (self *EmptyStatement) Idx0() file.Idx         { return self.Semicolon }
+func (self *ExpressionStatement) Idx0() file.Idx    { return self.Expression.Idx0() }
+func (self *ForInStatement) Idx0() file.Idx         { return self.For }
+func (self *ForStatement) Idx0() file.Idx           { return self.For }
+func (self *FunctionStatement) Idx0() file.Idx      { return self.Function.Idx0() }
+func (self *IfStatement) Idx0() file.Idx            { return self.If }
+func (self *LabelledStatement) Idx0() file.Idx      { return self.Label.Idx0() }
+func (self *Program) Idx0() file.Idx                { return self.Body[0].Idx0() }
+func (self *ReturnStatement) Idx0() file.Idx        { return self.Return }
+func (self *SwitchStatement) Idx0() file.Idx        { return self.Switch }
+func (self *ThrowStatement) Idx0() file.Idx         { return self.Throw }
+func (self *TryStatement) Idx0() file.Idx           { return self.Try }
+func (self *VariableStatement) Idx0() file.Idx      { return self.Var }
+func (self *WhileStatement) Idx0() file.Idx         { return self.While }
+func (self *WithStatement) Idx0() file.Idx          { return self.With }
+func (self *ImportStatement) Idx0() file.Idx        { return self.Import }
+func (self *ExportStatement) Idx0() file.Idx        { return self.Export }
+func (self *ExportDefaultStatement) Idx0() file.Idx { return self.Export }
 
 // ==== //
 // Idx1 //
@@ -557,12 +580,15 @@ func (self *IfStatement) Idx1() file.Idx {
 	}
 	return self.Consequent.Idx1()
 }
-func (self *LabelledStatement) Idx1() file.Idx { return self.Colon + 1 }
-func (self *Program) Idx1() file.Idx           { return self.Body[len(self.Body)-1].Idx1() }
-func (self *ReturnStatement) Idx1() file.Idx   { return self.Return }
-func (self *SwitchStatement) Idx1() file.Idx   { return self.Body[len(self.Body)-1].Idx1() }
-func (self *ThrowStatement) Idx1() file.Idx    { return self.Throw }
-func (self *TryStatement) Idx1() file.Idx      { return self.Try }
-func (self *VariableStatement) Idx1() file.Idx { return self.List[len(self.List)-1].Idx1() }
-func (self *WhileStatement) Idx1() file.Idx    { return self.Body.Idx1() }
-func (self *WithStatement) Idx1() file.Idx     { return self.Body.Idx1() }
+func (self *LabelledStatement) Idx1() file.Idx      { return self.Colon + 1 }
+func (self *Program) Idx1() file.Idx                { return self.Body[len(self.Body)-1].Idx1() }
+func (self *ReturnStatement) Idx1() file.Idx        { return self.Return }
+func (self *SwitchStatement) Idx1() file.Idx        { return self.Body[len(self.Body)-1].Idx1() }
+func (self *ThrowStatement) Idx1() file.Idx         { return self.Throw }
+func (self *TryStatement) Idx1() file.Idx           { return self.Try }
+func (self *VariableStatement) Idx1() file.Idx      { return self.List[len(self.List)-1].Idx1() }
+func (self *WhileStatement) Idx1() file.Idx         { return self.Body.Idx1() }
+func (self *WithStatement) Idx1() file.Idx          { return self.Body.Idx1() }
+func (self *ImportStatement) Idx1() file.Idx        { return self.Path.Idx1() }
+func (self *ExportStatement) Idx1() file.Idx        { return self.Var.Idx1() }
+func (self *ExportDefaultStatement) Idx1() file.Idx { return self.Argument.Idx1() }

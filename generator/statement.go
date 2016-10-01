@@ -44,6 +44,12 @@ func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration
 		return g.doWhileStatement(stmt.(*ast.DoWhileStatement))
 	case *ast.FunctionStatement:
 		return g.functionStatement(stmt.(*ast.FunctionStatement))
+	case *ast.ImportStatement:
+		return g.importStatement(stmt.(*ast.ImportStatement))
+	case *ast.ExportStatement:
+		return g.exportStatement(stmt.(*ast.ExportStatement))
+	case *ast.ExportDefaultStatement:
+		return g.exportDefaultStatement(stmt.(*ast.ExportDefaultStatement))
 	default:
 		return fmt.Errorf("Statement is not defined <%v>", reflect.TypeOf(stmt))
 	}
@@ -247,5 +253,55 @@ func (g *generator) variableStatement(v *ast.VariableStatement) error {
 }
 
 func (g *generator) functionStatement(f *ast.FunctionStatement) error {
+	return nil
+}
+
+func (g *generator) importStatement(i *ast.ImportStatement) error {
+	if i.Default != nil {
+		g.writeLine("var ")
+		g.write(i.Default.Name)
+		g.write(" = require('")
+		g.write(i.Path.Value)
+		g.write("').default")
+		g.write(" || ")
+		g.write("require('")
+		g.write(i.Path.Value)
+		g.write("');")
+	}
+
+	for _, ident := range i.List {
+		g.writeLine("var ")
+		g.write(ident.Name)
+		g.write(" = require('")
+		g.write(i.Path.Value)
+		g.write("').")
+		g.write(ident.Name)
+		g.write(";")
+	}
+
+	return nil
+}
+
+func (g *generator) exportStatement(e *ast.ExportStatement) error {
+	for _, vexp := range e.Var.List {
+		g.writeLine("module.exports.")
+		if err := g.generateExpression(vexp); err != nil {
+			return err
+		}
+
+		g.write(";")
+	}
+
+	return nil
+}
+
+func (g *generator) exportDefaultStatement(e *ast.ExportDefaultStatement) error {
+	g.writeLine("module.exports.default = ")
+	if err := g.generateExpression(e.Argument); err != nil {
+		return err
+	}
+
+	g.write(";")
+
 	return nil
 }

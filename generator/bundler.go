@@ -45,9 +45,9 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 	out.Write([]byte("\n__go_bundle_modules__ = {};\n"))
 	for _, mod := range bundle.modules {
 		out.Write([]byte(fmt.Sprintf("\n__go_bundle_modules__.%v = function() {\n", mod.name)))
-		out.Write([]byte("var module = { exports: {} };"))
+		out.Write([]byte("var module = { exports: {} };\n"))
 		out.Write(mod.data)
-		out.Write([]byte("return module.exports;\n"))
+		out.Write([]byte("\nreturn module.exports;\n"))
 		out.Write([]byte("};\n\n"))
 	}
 	out.Write([]byte("require = function (module) {\n"))

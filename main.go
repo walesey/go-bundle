@@ -10,8 +10,7 @@ import (
 )
 
 func main() {
-	// entry := "./index.js"
-	entry := "./generator/test/input18.js"
+	entry := "./index.js"
 	if len(os.Args) >= 2 {
 		entry = os.Args[1]
 	}

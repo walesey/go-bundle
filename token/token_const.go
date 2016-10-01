@@ -119,7 +119,7 @@ const (
 	EXPORT
 	EXTENDS
 	IMPORT
-	REQUIRE
+	FROM
 	SUPER
 
 	lastKeyword
@@ -222,7 +222,7 @@ var token2string = [...]string{
 	EXPORT:   "export",
 	EXTENDS:  "extends",
 	IMPORT:   "import",
-	REQUIRE:  "require",
+	FROM:     "from",
 	SUPER:    "super",
 }
 
@@ -321,14 +321,14 @@ var keywordTable = map[string]_keyword{
 	"import": _keyword{
 		token: IMPORT,
 	},
+	"from": _keyword{
+		token: FROM,
+	},
 	"super": _keyword{
 		token: SUPER,
 	},
 	"let": _keyword{
 		token: LET,
-	},
-	"require": _keyword{
-		token: REQUIRE,
 	},
 
 	"enum": _keyword{

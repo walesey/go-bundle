@@ -25,6 +25,20 @@ func (self *_parser) parseIdentifier() *ast.Identifier {
 	return exp
 }
 
+func (self *_parser) parseIdentifierList() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+	for {
+		identifiers = append(identifiers, self.parseIdentifier())
+		if self.token == token.COMMA {
+			self.next()
+		} else {
+			break
+		}
+	}
+
+	return identifiers
+}
+
 func (self *_parser) parsePrimaryExpression() ast.Expression {
 	literal := self.literal
 	idx := self.idx
