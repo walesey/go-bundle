@@ -1,0 +1,1 @@
+const { children, heading } = this.props;

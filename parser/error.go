@@ -98,6 +98,7 @@ func (self *_parser) errorUnexpected(idx file.Idx, chr rune) error {
 }
 
 func (self *_parser) errorUnexpectedToken(tkn token.Token) error {
+	// panic("")
 	switch tkn {
 	case token.EOF:
 		return self.error(file.Idx(0), err_UnexpectedEndOfInput)

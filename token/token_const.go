@@ -111,8 +111,8 @@ const (
 
 	INSTANCEOF
 
-	ARROW    // =>
-	VARIADAC // ...
+	ARROW  // =>
+	SPREAD // ...
 	CONST
 	LET
 	CLASS
@@ -214,16 +214,16 @@ var token2string = [...]string{
 	DEBUGGER:                    "debugger",
 	INSTANCEOF:                  "instanceof",
 
-	ARROW:    "=>",
-	VARIADAC: "...",
-	CONST:    "const",
-	LET:      "let",
-	CLASS:    "class",
-	EXPORT:   "export",
-	EXTENDS:  "extends",
-	IMPORT:   "import",
-	FROM:     "from",
-	SUPER:    "super",
+	ARROW:   "=>",
+	SPREAD:  "...",
+	CONST:   "const",
+	LET:     "let",
+	CLASS:   "class",
+	EXPORT:  "export",
+	EXTENDS: "extends",
+	IMPORT:  "import",
+	FROM:    "from",
+	SUPER:   "super",
 }
 
 var keywordTable = map[string]_keyword{

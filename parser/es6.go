@@ -99,3 +99,28 @@ func (self *_parser) parseExportStatement() ast.Statement {
 		Statement: self.parseVariableStatement(),
 	}
 }
+
+func (self *_parser) parseDestructureVariableStatement() []ast.Expression {
+	self.expect(token.LEFT_BRACE)
+	identifierList := self.parseIdentifierList()
+	self.expect(token.RIGHT_BRACE)
+	self.expect(token.ASSIGN)
+	initializer := self.parseAssignmentExpression()
+
+	result := make([]ast.Expression, len(identifierList))
+	for i, identifier := range identifierList {
+		result[i] = &ast.VariableExpression{
+			Name: identifier.Name,
+			Idx:  identifier.Idx,
+			Initializer: &ast.DotExpression{
+				Identifier: &ast.Identifier{
+					Idx:  self.idx,
+					Name: identifier.Name,
+				},
+				Left: initializer,
+			},
+		}
+	}
+
+	return result
+}

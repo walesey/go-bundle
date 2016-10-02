@@ -224,6 +224,12 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 				if digitValue(self.chr) < 10 {
 					insertSemicolon = true
 					tkn, literal = self.scanNumericLiteral(true)
+				} else if self.chr == '.' {
+					self.read()
+					if self.chr == '.' {
+						self.read()
+						tkn = token.SPREAD
+					}
 				} else {
 					tkn = token.PERIOD
 				}

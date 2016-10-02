@@ -292,27 +292,67 @@ func (g *generator) numberLiteral(n *ast.NumberLiteral) error {
 }
 
 func (g *generator) property(p ast.Property) error {
-	key := escapeKeyIfRequired(p.Key)
+	if len(p.Key) > 0 {
+		key := escapeKeyIfRequired(p.Key)
 
-	g.writeIndentation(key)
-	g.write(": ")
+		g.writeIndentation(key)
+		g.write(": ")
+	}
 	return g.generateExpression(p.Value)
 }
 
 func (g *generator) objectLiteral(o *ast.ObjectLiteral) error {
-	g.write("{\n")
-	g.indentLevel++
-	for i, p := range o.Value {
-		if err := g.property(p); err != nil {
-			return err
+	spread := false
+	for _, p := range o.Value {
+		if p.Kind == "spread" {
+			spread = true
 		}
-		if i < len(o.Value)-1 {
-			g.write(",")
-		}
-		g.write("\n")
 	}
-	g.indentLevel--
-	g.writeAlone("}")
+
+	if spread {
+		g.write("Object.assign({}, ")
+		objectOpen := false
+		for i, p := range o.Value {
+			if p.Kind == "spread" {
+				if objectOpen {
+					g.write(" }")
+					objectOpen = false
+				}
+				if i > 0 {
+					g.write(", ")
+				}
+			} else {
+				if i > 0 {
+					g.write(", ")
+				}
+				if !objectOpen {
+					g.write("{ ")
+					objectOpen = true
+				}
+			}
+			if err := g.property(p); err != nil {
+				return err
+			}
+			if objectOpen && i == len(o.Value)-1 {
+				g.write(" }")
+			}
+		}
+		g.write(")")
+	} else {
+		g.write("{\n")
+		g.indentLevel++
+		for i, p := range o.Value {
+			if err := g.property(p); err != nil {
+				return err
+			}
+			if i < len(o.Value)-1 {
+				g.write(",")
+			}
+			g.write("\n")
+		}
+		g.indentLevel--
+		g.writeAlone("}")
+	}
 	return nil
 }
 

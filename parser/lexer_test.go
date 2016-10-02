@@ -469,4 +469,14 @@ Second line \
 		token.SEMICOLON, "", 26,
 		token.EOF, "", 27)
 
+	test(`{ ...test };`,
+		token.LEFT_BRACE, "", 1,
+		token.WHITESPACE, " ", 2,
+		token.SPREAD, "", 3,
+		token.IDENTIFIER, "test", 6,
+		token.WHITESPACE, " ", 10,
+		token.RIGHT_BRACE, "", 11,
+		token.SEMICOLON, "", 12,
+		token.EOF, "", 13)
+
 }

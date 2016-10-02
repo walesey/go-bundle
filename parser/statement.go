@@ -643,7 +643,13 @@ func (self *_parser) parseVariableStatement() *ast.VariableStatement {
 	idx := self.idx
 	self.next()
 
-	list := self.parseVariableDeclarationList(idx)
+	var list []ast.Expression
+
+	if self.token == token.LEFT_BRACE {
+		list = self.parseDestructureVariableStatement()
+	} else {
+		list = self.parseVariableDeclarationList(idx)
+	}
 
 	statement := &ast.VariableStatement{
 		Var:      idx,

@@ -151,8 +151,6 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 				Closing: closing,
 			}
 			return self.parseArrowFunction(emptyParams)
-		} else if self.token == token.IDENTIFIER {
-
 		}
 
 		expression := self.parseExpression()
@@ -308,6 +306,14 @@ func (self *_parser) parseObjectPropertyKey() (string, string) {
 }
 
 func (self *_parser) parseObjectProperty() ast.Property {
+	if self.token == token.SPREAD {
+		self.expect(token.SPREAD)
+		return ast.Property{
+			Kind:  "spread",
+			Value: self.parsePrimaryExpression(),
+		}
+	}
+
 	literal, value := self.parseObjectPropertyKey()
 	if literal == "get" && self.token != token.COLON {
 		idx := self.idx
