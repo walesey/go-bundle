@@ -434,15 +434,20 @@ func (self *_parser) parseArgumentList() (argumentList []ast.Expression, idx0, i
 				self.comments.SetExpression(exp)
 			}
 			argumentList = append(argumentList, exp)
-			if self.token != token.COMMA {
+			if self.token == token.COMMA {
+				if self.mode&StoreComments != 0 {
+					self.comments.Unset()
+				}
+				self.next()
+				if self.token == token.RIGHT_PARENTHESIS {
+					break
+				}
+			} else {
 				break
 			}
-			if self.mode&StoreComments != 0 {
-				self.comments.Unset()
-			}
-			self.next()
 		}
 	}
+
 	if self.mode&StoreComments != 0 {
 		self.comments.Unset()
 	}
