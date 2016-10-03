@@ -226,15 +226,15 @@ Second line \
 		token.EOF, "", 9,
 	)
 
-	test(`var if var class`,
+	test(`var if var import`,
 		token.VAR, "var", 1,
 		token.WHITESPACE, " ", 4,
 		token.IF, "if", 5,
 		token.WHITESPACE, " ", 7,
 		token.VAR, "var", 8,
 		token.WHITESPACE, " ", 11,
-		token.CLASS, "class", 12,
-		token.EOF, "", 17,
+		token.IMPORT, "import", 12,
+		token.EOF, "", 18,
 	)
 
 	test(`-0`,

@@ -51,7 +51,14 @@ func (self *_parser) parseImportStatement() ast.Statement {
 		self.expect(token.RIGHT_BRACE)
 	}
 
-	self.expect(token.FROM)
+	if self.token != token.IDENTIFIER {
+		self.errorUnexpectedToken(self.token)
+	}
+
+	from := self.parseIdentifier()
+	if from.Name != "from" {
+		self.error(self.idx, "Expected import Statement to be followed by 'from'.")
+	}
 
 	literal := self.literal
 	idx := self.idx

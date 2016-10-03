@@ -115,12 +115,8 @@ const (
 	SPREAD // ...
 	CONST
 	LET
-	CLASS
 	EXPORT
-	EXTENDS
 	IMPORT
-	FROM
-	SUPER
 
 	lastKeyword
 )
@@ -214,16 +210,12 @@ var token2string = [...]string{
 	DEBUGGER:                    "debugger",
 	INSTANCEOF:                  "instanceof",
 
-	ARROW:   "=>",
-	SPREAD:  "...",
-	CONST:   "const",
-	LET:     "let",
-	CLASS:   "class",
-	EXPORT:  "export",
-	EXTENDS: "extends",
-	IMPORT:  "import",
-	FROM:    "from",
-	SUPER:   "super",
+	ARROW:  "=>",
+	SPREAD: "...",
+	CONST:  "const",
+	LET:    "let",
+	EXPORT: "export",
+	IMPORT: "import",
 }
 
 var keywordTable = map[string]_keyword{
@@ -309,23 +301,11 @@ var keywordTable = map[string]_keyword{
 	"const": _keyword{
 		token: CONST,
 	},
-	"class": _keyword{
-		token: CLASS,
-	},
 	"export": _keyword{
 		token: EXPORT,
 	},
-	"extends": _keyword{
-		token: EXTENDS,
-	},
 	"import": _keyword{
 		token: IMPORT,
-	},
-	"from": _keyword{
-		token: FROM,
-	},
-	"super": _keyword{
-		token: SUPER,
 	},
 	"let": _keyword{
 		token: LET,
