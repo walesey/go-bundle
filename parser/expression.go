@@ -314,6 +314,7 @@ func (self *_parser) parseObjectProperty() ast.Property {
 		}
 	}
 
+	tkn := self.token
 	literal, value := self.parseObjectPropertyKey()
 	if literal == "get" && self.token != token.COLON {
 		idx := self.idx
@@ -350,12 +351,20 @@ func (self *_parser) parseObjectProperty() ast.Property {
 	if self.mode&StoreComments != 0 {
 		self.comments.MarkComments(ast.COLON)
 	}
-	self.expect(token.COLON)
 
 	exp := ast.Property{
-		Key:   value,
-		Kind:  "value",
-		Value: self.parseAssignmentExpression(),
+		Key:  value,
+		Kind: "value",
+	}
+
+	if tkn == token.IDENTIFIER && self.token != token.COLON {
+		exp.Value = &ast.Identifier{
+			Idx:  self.idx,
+			Name: value,
+		}
+	} else {
+		self.expect(token.COLON)
+		exp.Value = self.parseAssignmentExpression()
 	}
 
 	if self.mode&StoreComments != 0 {
