@@ -61,6 +61,7 @@ func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration
 
 func (g *generator) switchStatement(d *ast.SwitchStatement) error {
 	g.writeLine("switch (")
+
 	if err := g.generateExpression(d.Discriminant); err != nil {
 		return err
 	}
@@ -105,18 +106,16 @@ func (g *generator) doWhileStatement(d *ast.DoWhileStatement) error {
 	if err := g.generateStatement(d.Body, nil); err != nil {
 		return err
 	}
-	g.write(" while(")
-	g.descentExpression()
+	g.write(" while (")
 	if err := g.generateExpression(d.Test); err != nil {
 		return err
 	}
-	g.ascentExpression()
 	g.write(");")
 	return nil
 }
 
 func (g *generator) whileStatement(w *ast.WhileStatement) error {
-	g.writeLine("while(")
+	g.writeLine("while (")
 	if err := g.generateExpression(w.Test); err != nil {
 		return err
 	}
@@ -164,7 +163,7 @@ func (g *generator) branchStatement(b *ast.BranchStatement) error {
 }
 
 func (g *generator) forInStatement(f *ast.ForInStatement) error {
-	g.writeLine("for(var ")
+	g.writeLine("for (var ")
 	if err := g.generateExpression(f.Into); err != nil {
 		return err
 	}
@@ -177,7 +176,7 @@ func (g *generator) forInStatement(f *ast.ForInStatement) error {
 }
 
 func (g *generator) forStatement(f *ast.ForStatement) error {
-	g.writeLine("for(")
+	g.writeLine("for (")
 	g.isInInitializer = true
 	if err := g.generateExpression(f.Initializer); err != nil {
 		return err
@@ -210,11 +209,9 @@ func (g *generator) ifStatement(i *ast.IfStatement) error {
 		g.writeLine("")
 	}
 	g.write("if (")
-	g.descentExpression()
 	if err := g.generateExpression(i.Test); err != nil {
 		return err
 	}
-	g.ascentExpression()
 
 	g.write(") ")
 
@@ -237,11 +234,9 @@ func (g *generator) emptyStatement(r *ast.EmptyStatement) error {
 
 func (g *generator) returnStatement(r *ast.ReturnStatement) error {
 	g.writeLine("return ")
-	g.descentExpression()
 	if err := g.generateExpression(r.Argument); err != nil {
 		return err
 	}
-	g.ascentExpression()
 	g.write(";")
 	return nil
 }

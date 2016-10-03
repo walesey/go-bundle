@@ -158,7 +158,7 @@ func (g *generator) argumentList(exps []ast.Expression) error {
 }
 
 func (g *generator) isInExpression() bool {
-	return g.expressionLevel > 0
+	return g.expressionLevel > 1
 }
 
 func (g *generator) descentExpression() {

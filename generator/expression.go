@@ -10,6 +10,8 @@ import (
 )
 
 func (g *generator) generateExpression(exp ast.Expression) error {
+	g.descentExpression()
+	defer g.ascentExpression()
 	switch exp.(type) {
 	case *ast.JSXExpression:
 		return g.jsxExpression(exp.(*ast.JSXExpression))
@@ -170,7 +172,6 @@ func (g *generator) assignExpression(a *ast.AssignExpression) error {
 	if g.isInExpression() && !g.isInInitializer {
 		g.write("(")
 	}
-	g.descentExpression()
 	if err := g.generateExpression(a.Left); err != nil {
 		return err
 	}
@@ -185,7 +186,6 @@ func (g *generator) assignExpression(a *ast.AssignExpression) error {
 	if err := g.generateExpression(a.Right); err != nil {
 		return err
 	}
-	g.ascentExpression()
 	if g.isInExpression() && !g.isInInitializer {
 		g.write(")")
 	}
@@ -242,11 +242,9 @@ func (g *generator) binaryExpression(b *ast.BinaryExpression) error {
 
 	g.write(" " + b.Operator.String() + " ")
 
-	g.descentExpression()
 	if err := g.generateExpression(b.Right); err != nil {
 		return err
 	}
-	g.ascentExpression()
 	g.write(")")
 	return nil
 }

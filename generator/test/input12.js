@@ -1,4 +1,4 @@
-while(true) {
+while (true) {
 }
 do {
-} while(true)
+} while (true)
