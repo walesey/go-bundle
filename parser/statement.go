@@ -755,6 +755,7 @@ func (self *_parser) parseIfStatement() ast.Statement {
 		node.Consequent = self.parseBlockStatement()
 	} else {
 		node.Consequent = self.parseStatement()
+		self.semicolon()
 	}
 
 	if self.token == token.ELSE {
