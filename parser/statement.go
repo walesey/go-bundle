@@ -660,7 +660,7 @@ func (self *_parser) parseVariableStatement() *ast.VariableStatement {
 		self.comments.CommentMap.AddComments(statement, comments, ast.LEADING)
 		self.comments.Unset()
 	}
-	self.semicolon()
+	// self.semicolon()
 
 	return statement
 }
