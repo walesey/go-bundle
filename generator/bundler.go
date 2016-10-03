@@ -74,42 +74,69 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 	return out, err
 }
 
-func (bundle *_bundle) resolveModule(importPath, currentPath string) (string, error) {
+func (bundle *_bundle) resolveModule(importValue, currentPath string) (string, error) {
 	//use relative path
-	if strings.HasPrefix(importPath, ".") {
-		path := filepath.Join(filepath.Dir(currentPath), importPath)
+	if strings.HasPrefix(importValue, ".") {
+		path := filepath.Join(filepath.Dir(currentPath), importValue)
 		return bundle.loadModule(path)
 	}
 
 	//look in node_modules
-	wd, _ := os.Getwd()
-	path := filepath.Join(wd, "node_modules", importPath)
-	ext := filepath.Ext(path)
-	if len(ext) == 0 {
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			path = fmt.Sprint(path, ".js")
+	searchPath, err := filepath.Abs(currentPath)
+	if err != nil {
+		return "", err
+	}
+
+	// search for node_modules in all subdirectories
+	for i := 0; i < 10; i++ {
+		nodeModulesPath, err := getNodeModulePath(searchPath)
+		if err != nil {
+			return "", err
+		}
+
+		path := filepath.Join(nodeModulesPath, importValue)
+		ext := filepath.Ext(path)
+		if len(ext) > 0 {
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				return bundle.loadModule(path)
+			}
 		} else {
-			path = fmt.Sprint(path, "/index.js")
-			if _, err := os.Stat(path); os.IsNotExist(err) {
-				// look for a package.json
-				packagePath := filepath.Join(wd, "node_modules", importPath, "package.json")
+			packagePath := filepath.Join(path, "package.json")
+			if _, err := os.Stat(packagePath); !os.IsNotExist(err) {
 				packageData, err := ioutil.ReadFile(packagePath)
 				if err != nil {
 					return "", err
 				}
 
-				var pkg map[string]string
-				json.Unmarshal(packageData, &pkg)
-				main, ok := pkg["main"]
-				if !ok {
-					return "", fmt.Errorf("npm package has no main entrypoint")
+				var pkg map[string]interface{}
+				err = json.Unmarshal(packageData, &pkg)
+				if err != nil {
+					return "", err
 				}
 
-				path = filepath.Join(wd, "node_modules", importPath, main)
+				mainPath := "index.js"
+				if main, ok := pkg["main"]; ok {
+					mainPath = main.(string)
+				}
+
+				return bundle.loadModule(filepath.Join(path, mainPath))
+			}
+
+			if _, err := os.Stat(fmt.Sprint(path, ".js")); !os.IsNotExist(err) {
+				return bundle.loadModule(fmt.Sprint(path, ".js"))
+			}
+
+			if _, err := os.Stat(fmt.Sprint(path, ".json")); !os.IsNotExist(err) {
+				return bundle.loadModule(fmt.Sprint(path, ".json"))
+			}
+
+			if _, err := os.Stat(fmt.Sprint(path, "/index.js")); !os.IsNotExist(err) {
+				return bundle.loadModule(fmt.Sprint(path, "/index.js"))
 			}
 		}
+		searchPath = filepath.Join(nodeModulesPath, "../..")
 	}
-	return bundle.loadModule(path)
+	return "", fmt.Errorf("Failed to resolve Module")
 }
 
 func (bundle *_bundle) loadModule(path string) (string, error) {
@@ -190,6 +217,20 @@ func (bundle *_bundle) loadModule(path string) (string, error) {
 func (b *_bundle) moduleName() string {
 	b.moduleCounter++
 	return fmt.Sprint("m", b.moduleCounter)
+}
+
+func getNodeModulePath(path string) (string, error) {
+	for i := 0; i < 10; i++ {
+		files, err := filepath.Glob(filepath.Join(path, "node_modules"))
+		if err != nil {
+			return "", err
+		}
+		if files != nil && len(files) > 0 {
+			return files[0], nil
+		}
+		path = filepath.Join(path, "..")
+	}
+	return "", fmt.Errorf("No node_modules directory can be found in any subdirectory")
 }
 
 func newBundle() *_bundle {
