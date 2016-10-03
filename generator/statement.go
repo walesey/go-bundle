@@ -42,6 +42,8 @@ func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration
 		return g.whileStatement(stmt.(*ast.WhileStatement))
 	case *ast.DoWhileStatement:
 		return g.doWhileStatement(stmt.(*ast.DoWhileStatement))
+	case *ast.SwitchStatement:
+		return g.switchStatement(stmt.(*ast.SwitchStatement))
 	case *ast.FunctionStatement:
 		return g.functionStatement(stmt.(*ast.FunctionStatement))
 	case *ast.LabelledStatement:
@@ -55,6 +57,47 @@ func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration
 	default:
 		return fmt.Errorf("Statement is not defined <%v>", reflect.TypeOf(stmt))
 	}
+}
+
+func (g *generator) switchStatement(d *ast.SwitchStatement) error {
+	g.writeLine("switch (")
+	if err := g.generateExpression(d.Discriminant); err != nil {
+		return err
+	}
+
+	g.write(") {")
+	g.indentLevel++
+	for _, c := range d.Body {
+		if err := g.caseStatement(c); err != nil {
+			return err
+		}
+	}
+	g.indentLevel--
+	g.writeLine("}")
+
+	return nil
+}
+
+func (g *generator) caseStatement(c *ast.CaseStatement) error {
+	if c.Test == nil {
+		g.writeLine("default:")
+	} else {
+		g.writeLine("case ")
+		if err := g.generateExpression(c.Test); err != nil {
+			return err
+		}
+		g.write(":")
+	}
+
+	g.indentLevel++
+	for _, stmt := range c.Consequent {
+		if err := g.generateStatement(stmt, []ast.Declaration{}); err != nil {
+			return err
+		}
+	}
+	g.indentLevel--
+
+	return nil
 }
 
 func (g *generator) doWhileStatement(d *ast.DoWhileStatement) error {
