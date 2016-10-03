@@ -60,27 +60,39 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 
 func (bundle *_bundle) resolveModule(importPath, currentPath string) (string, error) {
 	//use relative path
-	if strings.HasPrefix(importPath, "./") {
+	if strings.HasPrefix(importPath, ".") {
 		path := filepath.Join(filepath.Dir(currentPath), importPath)
 		return bundle.loadModule(path)
 	}
 
 	//look in node_modules
 	wd, _ := os.Getwd()
-	packagePath := filepath.Join(wd, "node_modules", importPath, "package.json")
-	packageData, err := ioutil.ReadFile(packagePath)
-	if err != nil {
-		return "", err
-	}
+	path := filepath.Join(wd, "node_modules", importPath)
+	ext := filepath.Ext(path)
+	if len(ext) == 0 {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			path = fmt.Sprint(path, ".js")
+		} else {
+			path = fmt.Sprint(path, "/index.js")
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				// look for a package.json
+				packagePath := filepath.Join(wd, "node_modules", importPath, "package.json")
+				packageData, err := ioutil.ReadFile(packagePath)
+				if err != nil {
+					return "", err
+				}
 
-	var pkg map[string]string
-	json.Unmarshal(packageData, &pkg)
-	main, ok := pkg["main"]
-	if !ok {
-		return "", fmt.Errorf("npm package has no main entrypoint")
-	}
+				var pkg map[string]string
+				json.Unmarshal(packageData, &pkg)
+				main, ok := pkg["main"]
+				if !ok {
+					return "", fmt.Errorf("npm package has no main entrypoint")
+				}
 
-	path := filepath.Join(wd, "node_modules", importPath, main)
+				path = filepath.Join(wd, "node_modules", importPath, main)
+			}
+		}
+	}
 	return bundle.loadModule(path)
 }
 

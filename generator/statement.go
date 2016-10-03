@@ -44,6 +44,8 @@ func (g *generator) generateStatement(stmt ast.Statement, dcls []ast.Declaration
 		return g.doWhileStatement(stmt.(*ast.DoWhileStatement))
 	case *ast.FunctionStatement:
 		return g.functionStatement(stmt.(*ast.FunctionStatement))
+	case *ast.LabelledStatement:
+		return g.labelledStatement(stmt.(*ast.LabelledStatement))
 	case *ast.ImportStatement:
 		return g.importStatement(stmt.(*ast.ImportStatement))
 	case *ast.ExportStatement:
@@ -254,6 +256,16 @@ func (g *generator) variableStatement(v *ast.VariableStatement) error {
 
 func (g *generator) functionStatement(f *ast.FunctionStatement) error {
 	return nil
+}
+
+func (g *generator) labelledStatement(ls *ast.LabelledStatement) error {
+	g.writeLine("")
+	if err := g.identifier(ls.Label); err != nil {
+		return err
+	}
+
+	g.write(": ")
+	return g.generateStatement(ls.Statement, []ast.Declaration{})
 }
 
 func (g *generator) importStatement(i *ast.ImportStatement) error {

@@ -204,6 +204,29 @@ func (g *generator) dotExpression(d *ast.DotExpression) error {
 }
 
 func (g *generator) callExpression(c *ast.CallExpression) error {
+	if identifier, ok := c.Callee.(*ast.Identifier); ok {
+		if g.bundle != nil && identifier.Name == "require" {
+			if len(c.ArgumentList) < 1 {
+				return fmt.Errorf("Not enought arguments in call to require")
+			}
+
+			requireStr, ok := c.ArgumentList[0].(*ast.StringLiteral)
+			if !ok {
+				return fmt.Errorf("Expected string argument in call to require")
+			}
+
+			modulePath, err := g.bundle.resolveModule(requireStr.Value, g.filePath)
+			if err != nil {
+				fmt.Println("Error Resolving Module: ", requireStr.Value)
+				return err
+			}
+			g.write("require('")
+			g.write(modulePath)
+			g.write("')")
+			return nil
+		}
+	}
+
 	g.isCalleeExpression = true
 	if err := g.generateExpression(c.Callee); err != nil {
 		return err
