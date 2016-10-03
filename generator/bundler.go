@@ -41,8 +41,9 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 
 	// write the bundle file
 	out := new(bytes.Buffer)
-	out.Write([]byte("var require;"))
-	out.Write([]byte("\n__go_bundle_modules__ = {};\n"))
+	out.Write([]byte("var require;\n"))
+	out.Write([]byte("var process = { env: {} };\n"))
+	out.Write([]byte("__go_bundle_modules__ = {};\n"))
 	for path, mod := range bundle.modules {
 		out.Write([]byte(fmt.Sprint("\n// ", path)))
 		out.Write([]byte(fmt.Sprintf("\n__go_bundle_modules__.%v = function() {\n", mod.name)))

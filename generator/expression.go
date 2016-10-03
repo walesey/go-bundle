@@ -252,7 +252,7 @@ func (g *generator) binaryExpression(b *ast.BinaryExpression) error {
 func (g *generator) unaryExpression(u *ast.UnaryExpression) error {
 	if !u.Postfix {
 		g.write(u.Operator.String())
-		if u.Operator == token.DELETE || u.Operator == token.TYPEOF {
+		if u.Operator == token.DELETE || u.Operator == token.TYPEOF || u.Operator == token.VOID {
 			g.write(" ")
 		}
 	}
