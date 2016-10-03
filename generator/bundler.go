@@ -13,6 +13,24 @@ import (
 	"github.com/walesey/go-bundle/parser"
 )
 
+const globalJS = `
+var require;
+var process = { env: {} };
+var __go_bundle_modules__ = {};
+var __go_bundle_module_cache__ = {};
+`
+
+const requireJS = `
+require = function (module) {
+  var result = __go_bundle_module_cache__[module];
+  if (!result) {
+    result = __go_bundle_modules__[module]();
+    __go_bundle_module_cache__[module] = result;
+  }
+  return result;
+};
+`
+
 type Loader interface {
 	Load(in io.Reader) (io.Reader, error)
 }
@@ -41,9 +59,7 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 
 	// write the bundle file
 	out := new(bytes.Buffer)
-	out.Write([]byte("var require;\n"))
-	out.Write([]byte("var process = { env: {} };\n"))
-	out.Write([]byte("__go_bundle_modules__ = {};\n"))
+	out.Write([]byte(globalJS))
 	for path, mod := range bundle.modules {
 		out.Write([]byte(fmt.Sprint("\n// ", path)))
 		out.Write([]byte(fmt.Sprintf("\n__go_bundle_modules__.%v = function() {\n", mod.name)))
@@ -52,9 +68,7 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 		out.Write([]byte("\nreturn module.exports;\n"))
 		out.Write([]byte("};\n\n"))
 	}
-	out.Write([]byte("require = function (module) {\n"))
-	out.Write([]byte("return __go_bundle_modules__[module]();\n"))
-	out.Write([]byte("};\n"))
+	out.Write([]byte(requireJS))
 	out.Write([]byte(fmt.Sprintf("require('%v');", entryModule)))
 
 	return out, err
