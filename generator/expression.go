@@ -22,7 +22,7 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 	case *ast.VariableExpression:
 		return g.variableExpression(exp.(*ast.VariableExpression))
 	case *ast.FunctionLiteral:
-		return g.functionLiteral(exp.(*ast.FunctionLiteral))
+		return g.functionLiteral(exp.(*ast.FunctionLiteral), true)
 	case *ast.ObjectLiteral:
 		return g.objectLiteral(exp.(*ast.ObjectLiteral))
 	case *ast.NumberLiteral:
@@ -383,7 +383,7 @@ func (g *generator) objectLiteral(o *ast.ObjectLiteral) error {
 	return nil
 }
 
-func (g *generator) functionLiteral(f *ast.FunctionLiteral) error {
+func (g *generator) functionLiteral(f *ast.FunctionLiteral, newline bool) error {
 	isAnonymous := f.Name == nil
 
 	if isAnonymous {
@@ -391,7 +391,10 @@ func (g *generator) functionLiteral(f *ast.FunctionLiteral) error {
 		g.isCalleeExpression = false
 		defer g.write(")")
 	} else {
-		g.writeLine("function ")
+		if newline {
+			g.writeLine("")
+		}
+		g.write("function ")
 		if err := g.generateExpression(f.Name); err != nil {
 			return err
 		}

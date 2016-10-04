@@ -234,8 +234,12 @@ func (g *generator) emptyStatement(r *ast.EmptyStatement) error {
 
 func (g *generator) returnStatement(r *ast.ReturnStatement) error {
 	g.writeLine("return ")
-	if err := g.generateExpression(r.Argument); err != nil {
-		return err
+	if fl, ok := r.Argument.(*ast.FunctionLiteral); ok {
+		g.functionLiteral(fl, false)
+	} else {
+		if err := g.generateExpression(r.Argument); err != nil {
+			return err
+		}
 	}
 	g.write(";")
 	return nil

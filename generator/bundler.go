@@ -65,7 +65,6 @@ func Bundle(entry string, loaders map[string][]Loader) (io.Reader, error) {
 		out.Write([]byte(fmt.Sprintf("\n__go_bundle_modules__.%v = function() {\n", mod.name)))
 		out.Write([]byte("var exports = {};\n"))
 		out.Write([]byte("var module = { exports: exports };\n"))
-		out.Write([]byte("exports.__esModule = true;\n"))
 		out.Write(mod.data)
 		out.Write([]byte("\nreturn module.exports;\n"))
 		out.Write([]byte("};\n\n"))

@@ -123,7 +123,7 @@ func (g *generator) generateProgram(p *ast.Program) error {
 
 func (g *generator) generateDeclaration(d ast.Declaration) error {
 	if fn, ok := d.(*ast.FunctionDeclaration); ok {
-		return g.functionLiteral(fn.Function)
+		return g.functionLiteral(fn.Function, false)
 	}
 
 	return nil
