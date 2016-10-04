@@ -625,8 +625,13 @@ func (self *_parser) parseForOrForInStatement() ast.Statement {
 		self.comments.Unset()
 	}
 	self.expect(token.SEMICOLON)
-	initializer := &ast.SequenceExpression{Sequence: left}
+
+	var initializer ast.Expression
+	if len(left) > 0 {
+		initializer = &ast.SequenceExpression{Sequence: left}
+	}
 	forstatement := self.parseFor(initializer)
+
 	if self.mode&StoreComments != 0 {
 		self.comments.CommentMap.AddComments(forstatement, comments, ast.LEADING)
 		self.comments.CommentMap.AddComments(forstatement, forComments, ast.FOR)

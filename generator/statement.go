@@ -346,14 +346,14 @@ func (g *generator) exportStatement(e *ast.ExportStatement) error {
 	case *ast.VariableStatement:
 		varStmt := e.Statement.(*ast.VariableStatement)
 		for _, exp := range varStmt.List {
-			g.writeLine("module.exports.")
+			g.writeLine("exports.")
 			if err := g.generateExpression(exp); err != nil {
 				return err
 			}
 		}
 	case *ast.FunctionStatement:
 		funcStmt := e.Statement.(*ast.FunctionStatement)
-		g.writeLine("module.exports.")
+		g.writeLine("exports.")
 		g.write(funcStmt.Function.Name.Name)
 		g.write(" = (function ")
 		g.isCalleeExpression = false
@@ -376,7 +376,7 @@ func (g *generator) exportStatement(e *ast.ExportStatement) error {
 }
 
 func (g *generator) exportDefaultStatement(e *ast.ExportDefaultStatement) error {
-	g.writeLine("module.exports.default = ")
+	g.writeLine("exports.default = ")
 	if err := g.generateExpression(e.Argument); err != nil {
 		return err
 	}
