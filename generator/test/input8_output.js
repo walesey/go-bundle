@@ -1,1 +1,1 @@
-var i = true ? false : true;
+var i = true ? false : (0, true);

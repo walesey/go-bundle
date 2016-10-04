@@ -116,6 +116,9 @@ func (g *generator) jsxBlockExpression(jsx *ast.JSXBlock) error {
 }
 
 func (g *generator) sequenceExpression(s *ast.SequenceExpression) error {
+	if g.isInExpression() {
+		g.write("(")
+	}
 	for i, e := range s.Sequence {
 		if err := g.generateExpression(e); err != nil {
 			return err
@@ -123,6 +126,9 @@ func (g *generator) sequenceExpression(s *ast.SequenceExpression) error {
 		if i < len(s.Sequence)-1 {
 			g.write(", ")
 		}
+	}
+	if g.isInExpression() {
+		g.write(")")
 	}
 
 	return nil
