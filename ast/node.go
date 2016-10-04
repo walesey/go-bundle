@@ -195,6 +195,11 @@ type (
 		Value   string
 	}
 
+	DynamicStringExpression struct {
+		Idx  file.Idx
+		List []Expression
+	}
+
 	ThisExpression struct {
 		Idx file.Idx
 	}
@@ -215,33 +220,34 @@ type (
 
 // _expressionNode
 
-func (*JSXText) _expressionNode()               {}
-func (*JSXExpression) _expressionNode()         {}
-func (*JSXElement) _expressionNode()            {}
-func (*JSXBlock) _expressionNode()              {}
-func (*WhiteSpaceLiteral) _expressionNode()     {}
-func (*ArrayLiteral) _expressionNode()          {}
-func (*AssignExpression) _expressionNode()      {}
-func (*BadExpression) _expressionNode()         {}
-func (*BinaryExpression) _expressionNode()      {}
-func (*BooleanLiteral) _expressionNode()        {}
-func (*BracketExpression) _expressionNode()     {}
-func (*CallExpression) _expressionNode()        {}
-func (*ConditionalExpression) _expressionNode() {}
-func (*DotExpression) _expressionNode()         {}
-func (*EmptyExpression) _expressionNode()       {}
-func (*FunctionLiteral) _expressionNode()       {}
-func (*Identifier) _expressionNode()            {}
-func (*NewExpression) _expressionNode()         {}
-func (*NullLiteral) _expressionNode()           {}
-func (*NumberLiteral) _expressionNode()         {}
-func (*ObjectLiteral) _expressionNode()         {}
-func (*RegExpLiteral) _expressionNode()         {}
-func (*SequenceExpression) _expressionNode()    {}
-func (*StringLiteral) _expressionNode()         {}
-func (*ThisExpression) _expressionNode()        {}
-func (*UnaryExpression) _expressionNode()       {}
-func (*VariableExpression) _expressionNode()    {}
+func (*JSXText) _expressionNode()                 {}
+func (*JSXExpression) _expressionNode()           {}
+func (*JSXElement) _expressionNode()              {}
+func (*JSXBlock) _expressionNode()                {}
+func (*WhiteSpaceLiteral) _expressionNode()       {}
+func (*ArrayLiteral) _expressionNode()            {}
+func (*AssignExpression) _expressionNode()        {}
+func (*BadExpression) _expressionNode()           {}
+func (*BinaryExpression) _expressionNode()        {}
+func (*BooleanLiteral) _expressionNode()          {}
+func (*BracketExpression) _expressionNode()       {}
+func (*CallExpression) _expressionNode()          {}
+func (*ConditionalExpression) _expressionNode()   {}
+func (*DotExpression) _expressionNode()           {}
+func (*EmptyExpression) _expressionNode()         {}
+func (*FunctionLiteral) _expressionNode()         {}
+func (*Identifier) _expressionNode()              {}
+func (*NewExpression) _expressionNode()           {}
+func (*NullLiteral) _expressionNode()             {}
+func (*NumberLiteral) _expressionNode()           {}
+func (*ObjectLiteral) _expressionNode()           {}
+func (*RegExpLiteral) _expressionNode()           {}
+func (*SequenceExpression) _expressionNode()      {}
+func (*StringLiteral) _expressionNode()           {}
+func (*DynamicStringExpression) _expressionNode() {}
+func (*ThisExpression) _expressionNode()          {}
+func (*UnaryExpression) _expressionNode()         {}
+func (*VariableExpression) _expressionNode()      {}
 
 // ========= //
 // Statement //
@@ -463,32 +469,33 @@ type Program struct {
 // Idx0 //
 // ==== //
 
-func (self *JSXText) Idx0() file.Idx               { return self.Pos }
-func (self *JSXElement) Idx0() file.Idx            { return self.LeftTag }
-func (self *JSXBlock) Idx0() file.Idx              { return self.OpeningElement.Idx0() }
-func (self *WhiteSpaceLiteral) Idx0() file.Idx     { return self.Idx }
-func (self *ArrayLiteral) Idx0() file.Idx          { return self.LeftBracket }
-func (self *AssignExpression) Idx0() file.Idx      { return self.Left.Idx0() }
-func (self *BadExpression) Idx0() file.Idx         { return self.From }
-func (self *BinaryExpression) Idx0() file.Idx      { return self.Left.Idx0() }
-func (self *BooleanLiteral) Idx0() file.Idx        { return self.Idx }
-func (self *BracketExpression) Idx0() file.Idx     { return self.Left.Idx0() }
-func (self *CallExpression) Idx0() file.Idx        { return self.Callee.Idx0() }
-func (self *ConditionalExpression) Idx0() file.Idx { return self.Test.Idx0() }
-func (self *DotExpression) Idx0() file.Idx         { return self.Left.Idx0() }
-func (self *EmptyExpression) Idx0() file.Idx       { return self.Begin }
-func (self *FunctionLiteral) Idx0() file.Idx       { return self.Function }
-func (self *Identifier) Idx0() file.Idx            { return self.Idx }
-func (self *NewExpression) Idx0() file.Idx         { return self.New }
-func (self *NullLiteral) Idx0() file.Idx           { return self.Idx }
-func (self *NumberLiteral) Idx0() file.Idx         { return self.Idx }
-func (self *ObjectLiteral) Idx0() file.Idx         { return self.LeftBrace }
-func (self *RegExpLiteral) Idx0() file.Idx         { return self.Idx }
-func (self *SequenceExpression) Idx0() file.Idx    { return self.Sequence[0].Idx0() }
-func (self *StringLiteral) Idx0() file.Idx         { return self.Idx }
-func (self *ThisExpression) Idx0() file.Idx        { return self.Idx }
-func (self *UnaryExpression) Idx0() file.Idx       { return self.Idx }
-func (self *VariableExpression) Idx0() file.Idx    { return self.Idx }
+func (self *JSXText) Idx0() file.Idx                 { return self.Pos }
+func (self *JSXElement) Idx0() file.Idx              { return self.LeftTag }
+func (self *JSXBlock) Idx0() file.Idx                { return self.OpeningElement.Idx0() }
+func (self *WhiteSpaceLiteral) Idx0() file.Idx       { return self.Idx }
+func (self *ArrayLiteral) Idx0() file.Idx            { return self.LeftBracket }
+func (self *AssignExpression) Idx0() file.Idx        { return self.Left.Idx0() }
+func (self *BadExpression) Idx0() file.Idx           { return self.From }
+func (self *BinaryExpression) Idx0() file.Idx        { return self.Left.Idx0() }
+func (self *BooleanLiteral) Idx0() file.Idx          { return self.Idx }
+func (self *BracketExpression) Idx0() file.Idx       { return self.Left.Idx0() }
+func (self *CallExpression) Idx0() file.Idx          { return self.Callee.Idx0() }
+func (self *ConditionalExpression) Idx0() file.Idx   { return self.Test.Idx0() }
+func (self *DotExpression) Idx0() file.Idx           { return self.Left.Idx0() }
+func (self *EmptyExpression) Idx0() file.Idx         { return self.Begin }
+func (self *FunctionLiteral) Idx0() file.Idx         { return self.Function }
+func (self *Identifier) Idx0() file.Idx              { return self.Idx }
+func (self *NewExpression) Idx0() file.Idx           { return self.New }
+func (self *NullLiteral) Idx0() file.Idx             { return self.Idx }
+func (self *NumberLiteral) Idx0() file.Idx           { return self.Idx }
+func (self *ObjectLiteral) Idx0() file.Idx           { return self.LeftBrace }
+func (self *RegExpLiteral) Idx0() file.Idx           { return self.Idx }
+func (self *SequenceExpression) Idx0() file.Idx      { return self.Sequence[0].Idx0() }
+func (self *StringLiteral) Idx0() file.Idx           { return self.Idx }
+func (self *DynamicStringExpression) Idx0() file.Idx { return self.Idx }
+func (self *ThisExpression) Idx0() file.Idx          { return self.Idx }
+func (self *UnaryExpression) Idx0() file.Idx         { return self.Idx }
+func (self *VariableExpression) Idx0() file.Idx      { return self.Idx }
 
 func (self *BadStatement) Idx0() file.Idx           { return self.From }
 func (self *BlockStatement) Idx0() file.Idx         { return self.LeftBrace }
@@ -548,7 +555,10 @@ func (self *ObjectLiteral) Idx1() file.Idx         { return self.RightBrace }
 func (self *RegExpLiteral) Idx1() file.Idx         { return file.Idx(int(self.Idx) + len(self.Literal)) }
 func (self *SequenceExpression) Idx1() file.Idx    { return self.Sequence[0].Idx1() }
 func (self *StringLiteral) Idx1() file.Idx         { return file.Idx(int(self.Idx) + len(self.Literal)) }
-func (self *ThisExpression) Idx1() file.Idx        { return self.Idx }
+func (self *DynamicStringExpression) Idx1() file.Idx {
+	return self.List[len(self.List)-1].Idx1()
+}
+func (self *ThisExpression) Idx1() file.Idx { return self.Idx }
 func (self *UnaryExpression) Idx1() file.Idx {
 	if self.Postfix {
 		return self.Operand.Idx1() + 2 // ++ --

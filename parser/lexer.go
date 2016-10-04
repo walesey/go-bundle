@@ -323,6 +323,8 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 				tkn = token.BITWISE_NOT
 			case '?':
 				tkn = token.QUESTION_MARK
+			case '`':
+				tkn = token.TEMPLATE
 			case '"', '\'':
 				insertSemicolon = true
 				tkn = token.STRING

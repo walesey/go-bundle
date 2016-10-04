@@ -111,8 +111,9 @@ const (
 
 	INSTANCEOF
 
-	ARROW  // =>
-	SPREAD // ...
+	ARROW    // =>
+	SPREAD   // ...
+	TEMPLATE // `
 	CONST
 	LET
 	EXPORT
@@ -210,12 +211,13 @@ var token2string = [...]string{
 	DEBUGGER:                    "debugger",
 	INSTANCEOF:                  "instanceof",
 
-	ARROW:  "=>",
-	SPREAD: "...",
-	CONST:  "const",
-	LET:    "let",
-	EXPORT: "export",
-	IMPORT: "import",
+	ARROW:    "=>",
+	SPREAD:   "...",
+	TEMPLATE: "`",
+	CONST:    "const",
+	LET:      "let",
+	EXPORT:   "export",
+	IMPORT:   "import",
 }
 
 var keywordTable = map[string]_keyword{
