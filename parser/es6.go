@@ -20,7 +20,7 @@ func (self *_parser) parseArrowFunction(params *ast.ParameterList) *ast.Function
 		leftBrace := self.idx
 		stmt := &ast.ReturnStatement{
 			Return:   leftBrace,
-			Argument: self.parseExpression(),
+			Argument: self.parseAssignmentExpression(),
 		}
 		node.Body = &ast.BlockStatement{
 			LeftBrace:  leftBrace,

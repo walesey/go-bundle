@@ -5,3 +5,6 @@ const i = {
   number: 2,
 };
 const copy = { ...i };
+fn({
+  test: () => 123,
+});
