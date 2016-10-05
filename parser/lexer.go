@@ -329,7 +329,7 @@ func (self *_parser) scan() (tkn token.Token, literal string, idx file.Idx) {
 				insertSemicolon = true
 				tkn = token.STRING
 				var err error
-				literal, err = self.scanString(self.chrOffset - 1)
+				literal, err = self.scanString(self.chrOffset-1, chr)
 				if err != nil {
 					tkn = token.ILLEGAL
 				}
@@ -605,10 +605,22 @@ newline:
 	return "", errors.New(err)
 }
 
-func (self *_parser) scanString(offset int) (string, error) {
-	// " ' /
-	quote := rune(self.str[offset])
+func (self *_parser) scanString(offset int, quote rune) (string, error) {
 	return self.scanStringWithQuote(offset, quote)
+}
+
+func (self *_parser) scanTemplateString(offset int) (string, error) {
+	for self.chr != '`' && !(self.chr == '$' && self.chrAt(self.offset).value == '{') {
+		chr := self.chr
+		self.read()
+		if chr == '\\' {
+			self.scanEscape('`')
+		}
+		if chr < 0 {
+			return "", errors.New("Template string not terminated")
+		}
+	}
+	return string(self.str[offset:self.chrOffset]), nil
 }
 
 func (self *_parser) scanNewline() {

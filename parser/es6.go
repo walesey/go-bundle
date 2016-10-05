@@ -1,6 +1,9 @@
 package parser
 
 import (
+	"fmt"
+	"regexp"
+
 	"github.com/walesey/go-bundle/ast"
 	"github.com/walesey/go-bundle/token"
 )
@@ -130,4 +133,54 @@ func (self *_parser) parseDestructureVariableStatement() []ast.Expression {
 	}
 
 	return result
+}
+
+func (self *_parser) parseDynamicString() ast.Expression {
+	idx := self.expect(token.TEMPLATE)
+	list := []ast.Expression{}
+
+	for {
+		literal := self.literal
+		strIdx := self.idx
+		value, err := self.scanTemplateString(self.chrOffset)
+		value = fmt.Sprint(literal, value)
+		value = regexp.MustCompile("(\\r|\\n)").ReplaceAllString(value, "\\$1")
+		literal = fmt.Sprintf("'%v'", value)
+
+		// case '\r':
+		// 	if self.chr == '\n' {
+		// 		self.chr = '\\n'
+		// 	}
+		// case '\u2028', '\u2029', '\n':
+
+		if err != nil {
+			self.error(self.idx, "error scanning template string: ", err)
+		}
+		list = append(list, &ast.StringLiteral{
+			Idx:     strIdx,
+			Literal: literal,
+			Value:   value,
+		})
+
+		chr := self.chr
+		self.rawNext()
+		if chr == '`' || chr < 0 {
+			break
+		}
+		if chr != '$' || self.chr != '{' {
+			self.error(self.idx, "expected ${...} in template string")
+		}
+		self.rawNext()
+		self.rawNext()
+		list = append(list, self.parsePrimaryExpression())
+		if self.token != token.RIGHT_BRACE {
+			self.errorUnexpectedToken(self.token)
+		}
+	}
+
+	self.expect(token.TEMPLATE)
+	return &ast.DynamicStringExpression{
+		Idx:  idx,
+		List: list,
+	}
 }

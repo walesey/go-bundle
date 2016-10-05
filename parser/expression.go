@@ -166,6 +166,8 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 		}
 	case token.FUNCTION:
 		return self.parseFunction(false)
+	case token.TEMPLATE:
+		return self.parseDynamicString()
 	}
 
 	self.errorUnexpectedToken(self.token)
@@ -181,7 +183,8 @@ func (self *_parser) parseRegExpLiteral() *ast.RegExpLiteral {
 	}
 	idx := self.idxOf(offset)
 
-	pattern, err := self.scanString(offset)
+	quote := rune(self.str[offset])
+	pattern, err := self.scanString(offset, quote)
 	endOffset := self.chrOffset
 
 	self.next()

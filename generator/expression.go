@@ -59,6 +59,8 @@ func (g *generator) generateExpression(exp ast.Expression) error {
 		return g.bracketExpression(exp.(*ast.BracketExpression))
 	case *ast.SequenceExpression:
 		return g.sequenceExpression(exp.(*ast.SequenceExpression))
+	case *ast.DynamicStringExpression:
+		return g.dynamicStringExpression(exp.(*ast.DynamicStringExpression))
 	case nil:
 		return nil
 	default:
@@ -416,6 +418,23 @@ func (g *generator) variableExpression(v *ast.VariableExpression) error {
 
 	if err := g.generateExpression(v.Initializer); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (g *generator) dynamicStringExpression(d *ast.DynamicStringExpression) error {
+	if len(d.List) == 0 {
+		g.write("''")
+	} else {
+		for i, e := range d.List {
+			if err := g.generateExpression(e); err != nil {
+				return err
+			}
+			if i < len(d.List)-1 {
+				g.write(" + ")
+			}
+		}
 	}
 
 	return nil
