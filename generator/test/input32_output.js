@@ -1,1 +1,1 @@
-var str = 'This is a multi-line\r\nTemplate string ' + i + '-' + j + '.';
+var str = 'This is a multi-line\nTemplate string ' + i + '-' + j + '.';

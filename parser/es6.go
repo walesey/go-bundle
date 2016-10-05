@@ -144,14 +144,8 @@ func (self *_parser) parseDynamicString() ast.Expression {
 		strIdx := self.idx
 		value, err := self.scanTemplateString(self.chrOffset)
 		value = fmt.Sprint(literal, value)
-		value = regexp.MustCompile("(\\r|\\n)").ReplaceAllString(value, "\\$1")
+		value = regexp.MustCompile("(\n|\r\n|\u2028|\u2029)").ReplaceAllString(value, "\\n")
 		literal = fmt.Sprintf("'%v'", value)
-
-		// case '\r':
-		// 	if self.chr == '\n' {
-		// 		self.chr = '\\n'
-		// 	}
-		// case '\u2028', '\u2029', '\n':
 
 		if err != nil {
 			self.error(self.idx, "error scanning template string: ", err)
