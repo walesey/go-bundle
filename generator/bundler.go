@@ -92,7 +92,8 @@ func (bundle *_bundle) resolveModule(importValue, currentPath string) (string, e
 	for i := 0; i < 10; i++ {
 		nodeModulesPath, err := getNodeModulePath(searchPath)
 		if err != nil {
-			return "", err
+			fmt.Println(currentPath)
+			return "", fmt.Errorf("Cannot find module: %v", importValue)
 		}
 
 		path := filepath.Join(nodeModulesPath, importValue)
@@ -231,7 +232,7 @@ func getNodeModulePath(path string) (string, error) {
 		}
 		path = filepath.Join(path, "..")
 	}
-	return "", fmt.Errorf("No node_modules directory can be found in any subdirectory")
+	return "", fmt.Errorf("No node_modules directory found in any subdirectories")
 }
 
 func newBundle() *_bundle {

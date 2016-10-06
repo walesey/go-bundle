@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/walesey/go-bundle/ast"
 	"github.com/walesey/go-bundle/token"
@@ -145,6 +146,7 @@ func (self *_parser) parseDynamicString() ast.Expression {
 		value, err := self.scanTemplateString(self.chrOffset)
 		value = fmt.Sprint(literal, value)
 		value = regexp.MustCompile("(\n|\r\n|\u2028|\u2029)").ReplaceAllString(value, "\\n")
+		value = strings.Replace(value, "'", "\\'", -1)
 		literal = fmt.Sprintf("'%v'", value)
 
 		if err != nil {
@@ -166,7 +168,7 @@ func (self *_parser) parseDynamicString() ast.Expression {
 		}
 		self.rawNext()
 		self.rawNext()
-		list = append(list, self.parsePrimaryExpression())
+		list = append(list, self.parseExpression())
 		if self.token != token.RIGHT_BRACE {
 			self.errorUnexpectedToken(self.token)
 		}
