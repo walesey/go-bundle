@@ -15,7 +15,9 @@ import (
 
 const globalJS = `
 var require;
-var process = { env: {} };
+var global = {};
+var process = {};
+process.env = {};
 var __go_bundle_modules__ = {};
 var __go_bundle_module_cache__ = {};
 `
