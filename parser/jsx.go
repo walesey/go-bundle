@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+
 	"github.com/walesey/go-bundle/ast"
 	"github.com/walesey/go-bundle/token"
 )
@@ -94,8 +95,15 @@ func (self *_parser) parseOpeningElement() *ast.JSXElement {
 	if self.token == token.IDENTIFIER {
 		open.Name = self.parseIdentifier()
 	}
-	for self.token == token.IDENTIFIER {
-		open.PropertyList = append(open.PropertyList, self.parseJSXProperty())
+
+	for {
+		if self.token == token.IDENTIFIER {
+			open.PropertyList = append(open.PropertyList, self.parseJSXProperty())
+		} else if self.token == token.LEFT_BRACE {
+			open.PropertyList = append(open.PropertyList, self.parseObjectLiteral().Value...)
+		} else {
+			break
+		}
 	}
 
 	if self.token == token.SLASH {

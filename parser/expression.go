@@ -376,7 +376,7 @@ func (self *_parser) parseObjectProperty() ast.Property {
 	return exp
 }
 
-func (self *_parser) parseObjectLiteral() ast.Expression {
+func (self *_parser) parseObjectLiteral() *ast.ObjectLiteral {
 	var value []ast.Property
 	idx0 := self.expect(token.LEFT_BRACE)
 	for self.token != token.RIGHT_BRACE && self.token != token.EOF {
