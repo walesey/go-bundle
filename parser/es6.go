@@ -42,32 +42,40 @@ func (self *_parser) parseImportStatement() ast.Statement {
 		Import: self.expect(token.IMPORT),
 	}
 
-	if self.token == token.IDENTIFIER {
-		node.Default = self.parseIdentifier()
-		if self.token == token.COMMA {
-			self.next()
+	if self.token != token.STRING {
+		if self.token == token.IDENTIFIER {
+			node.Default = self.parseIdentifier()
+			if self.token == token.COMMA {
+				self.next()
+			}
 		}
-	}
 
-	if self.token == token.LEFT_BRACE {
-		self.expect(token.LEFT_BRACE)
-		node.List = self.parseIdentifierList()
-		self.expect(token.RIGHT_BRACE)
-	}
+		if self.token == token.LEFT_BRACE {
+			self.expect(token.LEFT_BRACE)
+			node.List = self.parseIdentifierList()
+			self.expect(token.RIGHT_BRACE)
+		}
 
-	if self.token != token.IDENTIFIER {
-		self.errorUnexpectedToken(self.token)
-	}
+		if self.token != token.IDENTIFIER {
+			self.errorUnexpectedToken(self.token)
+		}
 
-	from := self.parseIdentifier()
-	if from.Name != "from" {
-		self.error(self.idx, "Expected import Statement to be followed by 'from'.")
+		from := self.parseIdentifier()
+		if from.Name != "from" {
+			self.error(self.idx, "Expected import Statement to be followed by 'from'.")
+			return node
+		}
 	}
 
 	literal := self.literal
 	idx := self.idx
 
-	self.expect(token.STRING)
+	if self.token != token.STRING {
+		self.error(idx, "Expected a string literal after import ... from")
+		return node
+	}
+
+	self.next()
 	value, err := parseStringLiteral(literal[1 : len(literal)-1])
 	if err != nil {
 		self.error(idx, err.Error())

@@ -332,6 +332,12 @@ func (g *generator) importStatement(i *ast.ImportStatement) error {
 		g.write("');")
 	}
 
+	if i.Default == nil && i.List == nil {
+		g.write("require('")
+		g.write(modulePath)
+		g.write("');")
+	}
+
 	for _, ident := range i.List {
 		g.writeLine("var ")
 		g.write(ident.Name)

@@ -1,3 +1,4 @@
+require('module-name');
 var i = require('test').default || require('test');
 var j = require('./home/index').j;
 var k = require('./home/index').k;
