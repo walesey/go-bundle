@@ -330,9 +330,17 @@ func (g *generator) importStatement(i *ast.ImportStatement) error {
 		g.write("require('")
 		g.write(modulePath)
 		g.write("');")
-	}
-
-	if i.Default == nil && i.List == nil {
+	} else if i.All != nil {
+		g.writeLine("var ")
+		g.write(i.All.Name)
+		g.write(" = Object.assign({}, require('")
+		g.write(modulePath)
+		g.write("').default")
+		g.write(", ")
+		g.write("require('")
+		g.write(modulePath)
+		g.write("'));")
+	} else if i.List == nil {
 		g.write("require('")
 		g.write(modulePath)
 		g.write("');")
@@ -340,11 +348,11 @@ func (g *generator) importStatement(i *ast.ImportStatement) error {
 
 	for _, ident := range i.List {
 		g.writeLine("var ")
-		g.write(ident.Name)
+		g.write(ident.As.Name)
 		g.write(" = require('")
 		g.write(modulePath)
 		g.write("').")
-		g.write(ident.Name)
+		g.write(ident.Name.Name)
 		g.write(";")
 	}
 

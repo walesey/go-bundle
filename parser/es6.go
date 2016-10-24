@@ -37,23 +37,74 @@ func (self *_parser) parseArrowFunction(params *ast.ParameterList) *ast.Function
 	return node
 }
 
+func (self *_parser) parseImportIdentifier() *ast.ImportIdentifier {
+	node := &ast.ImportIdentifier{Name: self.parseIdentifier()}
+
+	if self.token == token.IDENTIFIER {
+		as := self.parseIdentifier()
+		if as.Name != "as" {
+			self.error("Unexpected Identifier in import bindings: %v", as.Name)
+		}
+
+		node.As = self.parseIdentifier()
+	} else {
+		node.As = node.Name
+	}
+
+	return node
+}
+
+func (self *_parser) parseImportIdentifierList() []*ast.ImportIdentifier {
+	identifiers := []*ast.ImportIdentifier{}
+	for {
+		identifiers = append(identifiers, self.parseImportIdentifier())
+
+		if self.token == token.COMMA {
+			self.next()
+		} else {
+			break
+		}
+	}
+
+	return identifiers
+}
+
 func (self *_parser) parseImportStatement() ast.Statement {
 	node := &ast.ImportStatement{
 		Import: self.expect(token.IMPORT),
 	}
 
 	if self.token != token.STRING {
-		if self.token == token.IDENTIFIER {
-			node.Default = self.parseIdentifier()
-			if self.token == token.COMMA {
-				self.next()
-			}
-		}
+		if self.token == token.MULTIPLY {
 
-		if self.token == token.LEFT_BRACE {
-			self.expect(token.LEFT_BRACE)
-			node.List = self.parseIdentifierList()
-			self.expect(token.RIGHT_BRACE)
+			self.expect(token.MULTIPLY)
+			if self.token != token.IDENTIFIER {
+				self.errorUnexpectedToken(self.token)
+			}
+			as := self.parseIdentifier()
+			if as.Name != "as" {
+				self.error(self.idx, "Unexpected Identifier in import bindings: %v", as.Name)
+			}
+			if self.token != token.IDENTIFIER {
+				self.errorUnexpectedToken(self.token)
+			}
+			node.All = self.parseIdentifier()
+
+		} else {
+
+			if self.token == token.IDENTIFIER {
+				node.Default = self.parseIdentifier()
+				if self.token == token.COMMA {
+					self.next()
+				}
+			}
+
+			if self.token == token.LEFT_BRACE {
+				self.expect(token.LEFT_BRACE)
+				node.List = self.parseImportIdentifierList()
+				self.expect(token.RIGHT_BRACE)
+			}
+
 		}
 
 		if self.token != token.IDENTIFIER {

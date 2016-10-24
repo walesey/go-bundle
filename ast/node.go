@@ -140,6 +140,11 @@ type (
 		Idx  file.Idx
 	}
 
+	ImportIdentifier struct {
+		Name *Identifier
+		As   *Identifier
+	}
+
 	NewExpression struct {
 		New              file.Idx
 		Callee           Expression
@@ -237,6 +242,7 @@ func (*DotExpression) _expressionNode()           {}
 func (*EmptyExpression) _expressionNode()         {}
 func (*FunctionLiteral) _expressionNode()         {}
 func (*Identifier) _expressionNode()              {}
+func (*ImportIdentifier) _expressionNode()        {}
 func (*NewExpression) _expressionNode()           {}
 func (*NullLiteral) _expressionNode()             {}
 func (*NumberLiteral) _expressionNode()           {}
@@ -383,8 +389,9 @@ type (
 
 	ImportStatement struct {
 		Import  file.Idx
-		List    []*Identifier
+		List    []*ImportIdentifier
 		Default *Identifier
+		All     *Identifier
 		Path    *StringLiteral
 	}
 
@@ -485,6 +492,7 @@ func (self *DotExpression) Idx0() file.Idx           { return self.Left.Idx0() }
 func (self *EmptyExpression) Idx0() file.Idx         { return self.Begin }
 func (self *FunctionLiteral) Idx0() file.Idx         { return self.Function }
 func (self *Identifier) Idx0() file.Idx              { return self.Idx }
+func (self *ImportIdentifier) Idx0() file.Idx        { return self.Name.Idx0() }
 func (self *NewExpression) Idx0() file.Idx           { return self.New }
 func (self *NullLiteral) Idx0() file.Idx             { return self.Idx }
 func (self *NumberLiteral) Idx0() file.Idx           { return self.Idx }
@@ -548,6 +556,7 @@ func (self *DotExpression) Idx1() file.Idx         { return self.Identifier.Idx1
 func (self *EmptyExpression) Idx1() file.Idx       { return self.End }
 func (self *FunctionLiteral) Idx1() file.Idx       { return self.Body.Idx1() }
 func (self *Identifier) Idx1() file.Idx            { return file.Idx(int(self.Idx) + len(self.Name)) }
+func (self *ImportIdentifier) Idx1() file.Idx      { return self.As.Idx1() }
 func (self *NewExpression) Idx1() file.Idx         { return self.RightParenthesis + 1 }
 func (self *NullLiteral) Idx1() file.Idx           { return file.Idx(int(self.Idx) + 4) } // "null"
 func (self *NumberLiteral) Idx1() file.Idx         { return file.Idx(int(self.Idx) + len(self.Literal)) }
