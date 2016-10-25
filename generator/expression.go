@@ -223,13 +223,13 @@ func (g *generator) callExpression(c *ast.CallExpression) error {
 				return fmt.Errorf("Expected string argument in call to require")
 			}
 
-			modulePath, err := g.bundle.resolveModule(requireStr.Value, g.filePath)
-			if err != nil {
-				fmt.Println("Error Resolving Module: ", requireStr.Value)
-				return err
-			}
 			g.write("require('")
-			g.write(modulePath)
+			modulePath, err := g.bundle.resolveModule(requireStr.Value, g.filePath)
+			if err == nil {
+				g.write(modulePath)
+			} else {
+				g.write(requireStr.Value)
+			}
 			g.write("')")
 			return nil
 		}

@@ -94,19 +94,18 @@ func (bundle *_bundle) resolveModule(importValue, currentPath string) (string, e
 	for i := 0; i < 10; i++ {
 		nodeModulesPath, err := getNodeModulePath(searchPath)
 		if err != nil {
-			fmt.Println(currentPath)
 			return "", fmt.Errorf("Cannot find module: %v", importValue)
 		}
 
 		path := filepath.Join(nodeModulesPath, importValue)
 		ext := filepath.Ext(path)
 		if len(ext) > 0 {
-			if _, err := os.Stat(path); !os.IsNotExist(err) {
+			if _, err := os.Stat(path); err == nil {
 				return bundle.loadModule(path)
 			}
 		} else {
 			packagePath := filepath.Join(path, "package.json")
-			if _, err := os.Stat(packagePath); !os.IsNotExist(err) {
+			if _, err := os.Stat(packagePath); err == nil {
 				packageData, err := ioutil.ReadFile(packagePath)
 				if err != nil {
 					return "", err
@@ -126,15 +125,15 @@ func (bundle *_bundle) resolveModule(importValue, currentPath string) (string, e
 				return bundle.loadModule(filepath.Join(path, mainPath))
 			}
 
-			if _, err := os.Stat(fmt.Sprint(path, ".js")); !os.IsNotExist(err) {
+			if _, err := os.Stat(fmt.Sprint(path, ".js")); err == nil {
 				return bundle.loadModule(fmt.Sprint(path, ".js"))
 			}
 
-			if _, err := os.Stat(fmt.Sprint(path, ".json")); !os.IsNotExist(err) {
+			if _, err := os.Stat(fmt.Sprint(path, ".json")); err == nil {
 				return bundle.loadModule(fmt.Sprint(path, ".json"))
 			}
 
-			if _, err := os.Stat(fmt.Sprint(path, "/index.js")); !os.IsNotExist(err) {
+			if _, err := os.Stat(fmt.Sprint(path, "/index.js")); err == nil {
 				return bundle.loadModule(fmt.Sprint(path, "/index.js"))
 			}
 		}
@@ -144,14 +143,11 @@ func (bundle *_bundle) resolveModule(importValue, currentPath string) (string, e
 }
 
 func (bundle *_bundle) loadModule(path string) (string, error) {
-	// check the file extention
-	ext := filepath.Ext(path)
-	if len(ext) == 0 {
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			path = fmt.Sprint(path, ".js")
-		} else {
-			path = fmt.Sprint(path, "/index.js")
-		}
+
+	if _, err := os.Stat(fmt.Sprint(path, ".js")); err == nil {
+		path = fmt.Sprint(path, ".js")
+	} else if _, err := os.Stat(fmt.Sprint(path, "/index.js")); err == nil {
+		path = fmt.Sprint(path, "/index.js")
 	}
 
 	// use the absolute path and check if the file is already loaded
@@ -179,6 +175,7 @@ func (bundle *_bundle) loadModule(path string) (string, error) {
 		return moduleName, err
 	}
 
+	ext := filepath.Ext(absPath)
 	if loaders, ok := bundle.loaders[ext]; ok {
 		for _, loader := range loaders {
 			src, err = loader.Load(src)
@@ -189,7 +186,7 @@ func (bundle *_bundle) loadModule(path string) (string, error) {
 	}
 
 	// non js files do no not need to be parsed.
-	if filepath.Ext(absPath) != ".js" {
+	if ext != ".js" {
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, src)
 		mod.data = buf.Bytes()
